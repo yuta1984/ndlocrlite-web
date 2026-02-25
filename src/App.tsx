@@ -20,7 +20,7 @@ import './App.css'
 export default function App() {
   const { lang, toggleLanguage } = useI18n()
   const { isReady, jobState, processImage, resetState } = useOCRWorker()
-  const { processedImages, isLoading: isLoadingFiles, processFiles, clearImages } = useFileProcessor()
+  const { processedImages, isLoading: isLoadingFiles, processFiles, clearImages, fileLoadingState } = useFileProcessor()
   const { runs: historyRuns, saveRun, clearResults } = useResultCache()
 
   const [sessionResults, setSessionResults] = useState<OCRResult[]>([])
@@ -186,6 +186,20 @@ export default function App() {
 
         {(isWorking || isModelLoading) && (
           <div className="processing-section">
+            {isLoadingFiles && fileLoadingState && (
+              <div className="file-loading-status">
+                <div className="file-loading-spinner" />
+                <span className="file-loading-message">
+                  {fileLoadingState.currentPage != null && fileLoadingState.totalPages != null
+                    ? lang === 'ja'
+                      ? `${fileLoadingState.fileName} をレンダリング中... (${fileLoadingState.currentPage} / ${fileLoadingState.totalPages} ページ)`
+                      : `Rendering ${fileLoadingState.fileName}... (page ${fileLoadingState.currentPage} / ${fileLoadingState.totalPages})`
+                    : lang === 'ja'
+                      ? `${fileLoadingState.fileName} を読み込み中...`
+                      : `Loading ${fileLoadingState.fileName}...`}
+                </span>
+              </div>
+            )}
             <ProgressBar jobState={jobState} lang={lang} />
             {!isReady && !isModelLoading && (
               <p className="model-loading-note">
