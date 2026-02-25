@@ -147,49 +147,88 @@ export default function App() {
 
         {hasResults && (
           <section className="result-section">
+            {/* 左サイドバー: ファイル一覧 */}
             {sessionResults.length > 1 && (
-              <div className="result-nav">
+              <div className="result-sidebar">
                 {sessionResults.map((result, i) => (
                   <button
                     key={result.id}
-                    className={`result-nav-item ${i === selectedResultIndex ? 'active' : ''}`}
+                    className={`result-sidebar-item ${i === selectedResultIndex ? 'active' : ''}`}
                     onClick={() => {
                       setSelectedResultIndex(i)
                       setSelectedBlock(null)
                     }}
+                    title={result.fileName}
                   >
                     <img src={result.imageDataUrl} alt={result.fileName} />
-                    <span className="result-nav-label">{result.fileName}</span>
+                    <span className="result-sidebar-label">{result.fileName}</span>
                   </button>
                 ))}
               </div>
             )}
 
-            <div className="result-main">
-              <div className="result-left">
-                {currentResult && (
-                  <ImageViewer
-                    imageDataUrl={currentResult.imageDataUrl}
-                    textBlocks={currentResult.textBlocks}
-                    selectedBlock={selectedBlock}
-                    onBlockSelect={setSelectedBlock}
-                    onRegionSelect={(blocks) => {
-                      if (blocks.length > 0) setSelectedBlock(blocks[0])
-                    }}
-                  />
-                )}
+            {/* メインコンテンツ */}
+            <div className="result-content">
+              {/* ページナビゲーション */}
+              <div className="result-page-nav">
+                <button
+                  className="btn-nav"
+                  onClick={() => { setSelectedResultIndex(prev => prev - 1); setSelectedBlock(null) }}
+                  disabled={selectedResultIndex === 0}
+                  title={lang === 'ja' ? '前のファイル' : 'Previous file'}
+                >
+                  ←
+                </button>
+                <select
+                  className="result-page-select"
+                  value={selectedResultIndex}
+                  onChange={(e) => {
+                    setSelectedResultIndex(Number(e.target.value))
+                    setSelectedBlock(null)
+                  }}
+                >
+                  {sessionResults.map((result, i) => (
+                    <option key={result.id} value={i}>
+                      {i + 1} / {sessionResults.length}　{result.fileName}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className="btn-nav"
+                  onClick={() => { setSelectedResultIndex(prev => prev + 1); setSelectedBlock(null) }}
+                  disabled={selectedResultIndex === sessionResults.length - 1}
+                  title={lang === 'ja' ? '次のファイル' : 'Next file'}
+                >
+                  →
+                </button>
               </div>
 
-              <div className="result-right">
-                <ResultPanel result={currentResult} selectedBlock={selectedBlock} lang={lang} />
-                <ResultActions results={sessionResults} currentResult={currentResult} lang={lang} />
-              </div>
-            </div>
+              <div className="result-main">
+                <div className="result-left">
+                  {currentResult && (
+                    <ImageViewer
+                      imageDataUrl={currentResult.imageDataUrl}
+                      textBlocks={currentResult.textBlocks}
+                      selectedBlock={selectedBlock}
+                      onBlockSelect={setSelectedBlock}
+                      onRegionSelect={(blocks) => {
+                        if (blocks.length > 0) setSelectedBlock(blocks[0])
+                      }}
+                    />
+                  )}
+                </div>
 
-            <div className="new-process-section">
-              <button className="btn btn-primary" onClick={handleClear}>
-                {lang === 'ja' ? '新しいファイルを処理' : 'Process New Files'}
-              </button>
+                <div className="result-right">
+                  <ResultPanel result={currentResult} selectedBlock={selectedBlock} lang={lang} />
+                  <ResultActions results={sessionResults} currentResult={currentResult} lang={lang} />
+                </div>
+              </div>
+
+              <div className="new-process-section">
+                <button className="btn btn-primary" onClick={handleClear}>
+                  {lang === 'ja' ? '新しいファイルを処理' : 'Process New Files'}
+                </button>
+              </div>
             </div>
           </section>
         )}
