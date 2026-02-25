@@ -14,7 +14,7 @@ export function Footer({ lang, githubUrl = 'https://github.com/yuta1984/ndlocrli
             <a href="https://www.npmjs.com/package/onnxruntime-web" target="_blank" rel="noopener noreferrer">
               ONNX Web Runtime
             </a>{' '}
-            技術を使用しており、Webブラウザで完結して動作します。選択した画像とOCR結果は外部に送信されません。
+            技術を使用しており、Webブラウザで完結して動作します。選択した画像とOCR結果はあなたのPCの外部には送信されません。
           </span>
         ) : (
           <span>
