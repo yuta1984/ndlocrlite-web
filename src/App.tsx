@@ -117,6 +117,7 @@ export default function App() {
     setShowHistory(false)
   }
 
+  const isModelLoading = jobState.status === 'loading_model'
   const isWorking = isLoadingFiles || isProcessing
   const hasResults = sessionResults.length > 0
 
@@ -130,7 +131,7 @@ export default function App() {
       />
 
       <main className="main">
-        {!hasResults && !isWorking && (
+        {!hasResults && !isWorking && !isModelLoading && (
           <section className="upload-section">
             <FileDropZone onFilesSelected={handleFilesSelected} lang={lang} disabled={isWorking} />
             <div className="upload-actions">
@@ -142,10 +143,10 @@ export default function App() {
           </section>
         )}
 
-        {isWorking && (
+        {(isWorking || isModelLoading) && (
           <div className="processing-section">
             <ProgressBar jobState={jobState} lang={lang} />
-            {!isReady && (
+            {!isReady && !isModelLoading && (
               <p className="model-loading-note">
                 {lang === 'ja'
                   ? '初回起動時はモデルのダウンロードに時間がかかります（数分程度）。次回以降はキャッシュから高速起動します。'

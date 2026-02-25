@@ -11,6 +11,13 @@ export type WorkerInMessage =
     }
   | { type: 'TERMINATE' }
 
+export interface ModelProgress {
+  layout: number
+  rec30: number
+  rec50: number
+  rec100: number
+}
+
 // Workerから受信するメッセージ
 export type WorkerOutMessage =
   | {
@@ -19,6 +26,7 @@ export type WorkerOutMessage =
       stage: string
       progress: number
       message: string
+      modelProgress?: ModelProgress
     }
   | {
       type: 'OCR_COMPLETE'

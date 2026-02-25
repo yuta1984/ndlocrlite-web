@@ -195,6 +195,47 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   min-height: 1.2em;
 }
 
+.progress-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 1rem;
+}
+
+.model-download-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.model-download-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.model-download-label {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.model-download-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.model-download-bar-wrap .progress-bar-track {
+  flex: 1;
+}
+
+.model-download-pct {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  min-width: 3ch;
+  text-align: right;
+}
+
 .model-loading-note {
   font-size: 0.8rem;
   color: var(--color-text-secondary);

@@ -49,6 +49,7 @@ class OCRWorker {
           stage: 'loading_models',
           progress: 0.02 + avg * 0.73,
           message: `Loading models... ${Math.round(avg * 100)}%`,
+          modelProgress: { ...progresses },
         })
       }
 

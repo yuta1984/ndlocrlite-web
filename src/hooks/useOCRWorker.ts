@@ -31,8 +31,20 @@ export function useOCRWorker() {
 
     worker.onmessage = (event: MessageEvent<WorkerOutMessage>) => {
       const msg = event.data
-      if (msg.type === 'OCR_PROGRESS' && msg.stage === 'initialized') {
-        setIsReady(true)
+      if (msg.type === 'OCR_PROGRESS') {
+        if (msg.stage === 'initialized') {
+          setIsReady(true)
+          setJobState(initialJobState)
+        } else {
+          setJobState((prev) => ({
+            ...prev,
+            status: 'loading_model',
+            stageProgress: msg.progress,
+            stage: msg.stage,
+            message: msg.message,
+            modelProgress: msg.modelProgress,
+          }))
+        }
       }
     }
 
@@ -74,6 +86,7 @@ export function useOCRWorker() {
               stage: msg.stage,
               message: msg.message,
               status: msg.stage === 'initialized' ? 'idle' : 'processing',
+              modelProgress: msg.modelProgress,
             }))
           } else if (msg.type === 'OCR_COMPLETE') {
             workerRef.current?.removeEventListener('message', handler)

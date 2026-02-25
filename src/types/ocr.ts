@@ -49,4 +49,5 @@ export interface OCRJobState {
   stage: string
   message: string
   errorMessage?: string
+  modelProgress?: { layout: number; rec30: number; rec50: number; rec100: number }
 }
