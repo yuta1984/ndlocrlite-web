@@ -36,6 +36,13 @@ export default function App() {
     await processFiles(files)
   }, [processFiles])
 
+  const handleSampleLoad = useCallback(async () => {
+    const res = await fetch('/kumonoito.png')
+    const blob = await res.blob()
+    const file = new File([blob], 'kumonoito.png', { type: 'image/png' })
+    await processFiles([file])
+  }, [processFiles])
+
   // processedImages更新時に自動でOCR開始
   useEffect(() => {
     if (processedImages.length === 0 || isProcessing) return
@@ -128,6 +135,9 @@ export default function App() {
             <FileDropZone onFilesSelected={handleFilesSelected} lang={lang} disabled={isWorking} />
             <div className="upload-actions">
               <DirectoryPicker onFilesSelected={handleFilesSelected} lang={lang} disabled={isWorking} />
+              <button className="btn btn-secondary" onClick={handleSampleLoad} disabled={isWorking}>
+                {lang === 'ja' ? 'サンプルを試す' : 'Try Sample'}
+              </button>
             </div>
           </section>
         )}
