@@ -23,5 +23,3 @@ dist-ssr
 *.sln
 *.sw?
 
-# ONNX model files (large binaries - place manually in public/models/)
-public/models/*.onnx

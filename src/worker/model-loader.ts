@@ -94,6 +94,12 @@ async function downloadWithProgress(
     throw new Error(`HTTP error! status: ${response.status}`)
   }
 
+  // SPAフォールバックでHTMLが返った場合（モデルファイルが存在しない）を検出
+  const contentType = response.headers.get('content-type') ?? ''
+  if (contentType.includes('text/html')) {
+    throw new Error(`Model file not found (HTML returned): ${url}`)
+  }
+
   const contentLength = parseInt(
     response.headers.get('content-length') || '0',
     10
