@@ -219,11 +219,30 @@ export class LayoutDetector {
         })
       }
 
-      return detections
+      return this.nms(detections)
     } catch (error) {
       console.error('Error in postprocessing:', error)
       return []
     }
+  }
+
+  private nms(detections: TextRegion[], iouThreshold = 0.5): TextRegion[] {
+    const sorted = [...detections].sort((a, b) => b.confidence - a.confidence)
+    const keep: TextRegion[] = []
+    for (const d of sorted) {
+      if (keep.every((k) => this.iou(k, d) < iouThreshold)) keep.push(d)
+    }
+    return keep
+  }
+
+  private iou(a: TextRegion, b: TextRegion): number {
+    const ax2 = a.x + a.width, ay2 = a.y + a.height
+    const bx2 = b.x + b.width, by2 = b.y + b.height
+    const ix = Math.max(0, Math.min(ax2, bx2) - Math.max(a.x, b.x))
+    const iy = Math.max(0, Math.min(ay2, by2) - Math.max(a.y, b.y))
+    const inter = ix * iy
+    if (inter === 0) return 0
+    return inter / (a.width * a.height + b.width * b.height - inter)
   }
 
   dispose(): void {
