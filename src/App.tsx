@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import type { OCRResult, TextBlock, BoundingBox } from './types/ocr'
 import type { DBRunEntry } from './types/db'
 import { useI18n } from './hooks/useI18n'
@@ -16,6 +16,7 @@ import { ResultActions } from './components/results/ResultActions'
 import { HistoryPanel } from './components/results/HistoryPanel'
 import { SettingsModal } from './components/settings/SettingsModal'
 import { RegionOCRDialog } from './components/viewer/RegionOCRDialog'
+import { imageDataToDataUrl } from './utils/imageLoader'
 import './App.css'
 
 function cropRegion(srcDataUrl: string, bbox: BoundingBox) {
@@ -51,6 +52,16 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [isReadyToProcess, setIsReadyToProcess] = useState(false)
+  const [pendingImageIndex, setPendingImageIndex] = useState(0)
+
+  // pending 状態での ImageViewer 表示用（全解像度 DataUrl）
+  const pendingDataUrls = useMemo(
+    () => processedImages.map((img) => imageDataToDataUrl(img.imageData)),
+    [processedImages]
+  )
+
+  // processedImages が差し替わったらインデックスをリセット
+  useEffect(() => { setPendingImageIndex(0) }, [processedImages])
   const [regionOCRDialog, setRegionOCRDialog] = useState<{
     cropDataUrl: string
     isProcessing: boolean
@@ -166,7 +177,21 @@ export default function App() {
     resetState()
     setIsProcessing(false)
     setIsReadyToProcess(false)
+    setPendingImageIndex(0)
   }
+
+  // 領域 OCR の共通ハンドラ（pending・result 両方から呼ぶ）
+  const handleRegionOCR = useCallback(async (blocks: TextBlock[], bbox: BoundingBox, srcDataUrl: string) => {
+    if (blocks.length > 0) setSelectedBlock(blocks[0])
+    const { previewDataUrl, imageData } = await cropRegion(srcDataUrl, bbox)
+    setRegionOCRDialog({ cropDataUrl: previewDataUrl, isProcessing: true, result: null })
+    try {
+      const result = await processRegion(imageData)
+      setRegionOCRDialog(prev => prev ? { ...prev, isProcessing: false, result } : null)
+    } catch {
+      setRegionOCRDialog(prev => prev ? { ...prev, isProcessing: false, result: { textBlocks: [], fullText: '' } } : null)
+    }
+  }, [processRegion])
 
   const handleHistorySelect = (run: DBRunEntry) => {
     const restoredResults: OCRResult[] = run.files.map((file, i) => ({
@@ -218,22 +243,76 @@ export default function App() {
         )}
 
         {hasPendingImages && (
-          <section className="pending-section">
-            <div className="pending-grid">
-              {processedImages.map((img, i) => (
-                <div key={i} className="pending-item">
-                  <img src={img.thumbnailDataUrl} alt={img.fileName} className="pending-thumb" />
-                  <span className="pending-item-name">
-                    {img.pageIndex ? `${img.fileName} (p.${img.pageIndex})` : img.fileName}
-                  </span>
+          <section className="result-section">
+            {/* 左サイドバー */}
+            {processedImages.length > 1 && (
+              <div className="result-sidebar">
+                {processedImages.map((img, i) => (
+                  <button
+                    key={i}
+                    className={`result-sidebar-item ${i === pendingImageIndex ? 'active' : ''}`}
+                    onClick={() => setPendingImageIndex(i)}
+                    title={img.pageIndex ? `${img.fileName} (p.${img.pageIndex})` : img.fileName}
+                  >
+                    <img src={img.thumbnailDataUrl} alt={img.fileName} />
+                    <span className="result-sidebar-label">
+                      {img.pageIndex ? `${img.fileName} (p.${img.pageIndex})` : img.fileName}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="result-content">
+              {/* ページナビゲーション */}
+              {processedImages.length > 1 && (
+                <div className="result-page-nav">
+                  <button
+                    className="btn-nav"
+                    onClick={() => setPendingImageIndex(prev => prev - 1)}
+                    disabled={pendingImageIndex === 0}
+                    title={lang === 'ja' ? '前のファイル' : 'Previous file'}
+                  >←</button>
+                  <select
+                    className="result-page-select"
+                    value={pendingImageIndex}
+                    onChange={(e) => setPendingImageIndex(Number(e.target.value))}
+                  >
+                    {processedImages.map((img, i) => (
+                      <option key={i} value={i}>
+                        {i + 1} / {processedImages.length}
+                        {img.pageIndex ? `${img.fileName} (p.${img.pageIndex})` : img.fileName}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    className="btn-nav"
+                    onClick={() => setPendingImageIndex(prev => prev + 1)}
+                    disabled={pendingImageIndex === processedImages.length - 1}
+                    title={lang === 'ja' ? '次のファイル' : 'Next file'}
+                  >→</button>
                 </div>
-              ))}
+              )}
+
+              <div className="result-main">
+                <div className="result-left">
+                  <ImageViewer
+                    imageDataUrl={pendingDataUrls[pendingImageIndex] ?? ''}
+                    textBlocks={[]}
+                    selectedBlock={null}
+                    onBlockSelect={() => {}}
+                    onRegionSelect={(blocks, bbox) =>
+                      handleRegionOCR(blocks, bbox, pendingDataUrls[pendingImageIndex] ?? '')
+                    }
+                  />
+                  <p className="region-select-hint">
+                    {lang === 'ja'
+                      ? 'マウスで領域をドラッグすると、その領域のみ認識をおこないます'
+                      : 'Drag to select a region and run OCR on that area only'}
+                  </p>
+                </div>
+              </div>
             </div>
-            <p className="pending-hint">
-              {lang === 'ja'
-                ? `${processedImages.length} 件の画像を読み込みました`
-                : `${processedImages.length} image(s) loaded`}
-            </p>
           </section>
         )}
 
@@ -330,18 +409,11 @@ export default function App() {
                       textBlocks={currentResult.textBlocks}
                       selectedBlock={selectedBlock}
                       onBlockSelect={setSelectedBlock}
-                      onRegionSelect={async (blocks, bbox) => {
-                        if (blocks.length > 0) setSelectedBlock(blocks[0])
-                        if (!currentResult) return
-                        const { previewDataUrl, imageData } = await cropRegion(currentResult.imageDataUrl, bbox)
-                        setRegionOCRDialog({ cropDataUrl: previewDataUrl, isProcessing: true, result: null })
-                        try {
-                          const result = await processRegion(imageData)
-                          setRegionOCRDialog(prev => prev ? { ...prev, isProcessing: false, result } : null)
-                        } catch {
-                          setRegionOCRDialog(prev => prev ? { ...prev, isProcessing: false, result: { textBlocks: [], fullText: '' } } : null)
-                        }
-                      }}
+                      onRegionSelect={(blocks, bbox) =>
+                        currentResult
+                          ? handleRegionOCR(blocks, bbox, currentResult.imageDataUrl)
+                          : undefined
+                      }
                     />
                   )}
                   <p className="region-select-hint">
