@@ -11,9 +11,13 @@ interface ResultActionsProps {
 export function ResultActions({ results, currentResult, lang }: ResultActionsProps) {
   const [copied, setCopied] = useState(false)
   const [includeFileName, setIncludeFileName] = useState(false)
+  const [ignoreNewlines, setIgnoreNewlines] = useState(false)
+
+  const applyOptions = (text: string) =>
+    ignoreNewlines ? text.replace(/\n/g, '') : text
 
   const buildText = (result: OCRResult) =>
-    includeFileName ? `=== ${result.fileName} ===\n${result.fullText}` : result.fullText
+    applyOptions(includeFileName ? `=== ${result.fileName} ===\n${result.fullText}` : result.fullText)
 
   const handleCopy = async () => {
     const text = currentResult ? buildText(currentResult) : ''
@@ -48,6 +52,14 @@ export function ResultActions({ results, currentResult, lang }: ResultActionsPro
           onChange={(e) => setIncludeFileName(e.target.checked)}
         />
         {lang === 'ja' ? 'ファイル名を記載する' : 'Include file name'}
+      </label>
+      <label className="result-actions-option">
+        <input
+          type="checkbox"
+          checked={ignoreNewlines}
+          onChange={(e) => setIgnoreNewlines(e.target.checked)}
+        />
+        {lang === 'ja' ? '改行を無視する' : 'Ignore newlines'}
       </label>
       <div className="result-actions-buttons">
         <button className="btn btn-primary" onClick={handleCopy} disabled={disabled}>

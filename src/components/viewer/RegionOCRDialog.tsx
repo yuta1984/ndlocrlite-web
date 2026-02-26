@@ -11,6 +11,7 @@ interface RegionOCRDialogProps {
 
 export function RegionOCRDialog({ cropDataUrl, isProcessing, result, lang, onClose }: RegionOCRDialogProps) {
   const [copied, setCopied] = useState(false)
+  const [ignoreNewlines, setIgnoreNewlines] = useState(false)
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -22,7 +23,8 @@ export function RegionOCRDialog({ cropDataUrl, isProcessing, result, lang, onClo
 
   const handleCopy = async () => {
     if (!result?.fullText) return
-    await navigator.clipboard.writeText(result.fullText)
+    const text = ignoreNewlines ? result.fullText.replace(/\n/g, '') : result.fullText
+    await navigator.clipboard.writeText(text)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -61,6 +63,14 @@ export function RegionOCRDialog({ cropDataUrl, isProcessing, result, lang, onClo
         </div>
 
         <div className="region-ocr-footer">
+          <label className="result-actions-option">
+            <input
+              type="checkbox"
+              checked={ignoreNewlines}
+              onChange={(e) => setIgnoreNewlines(e.target.checked)}
+            />
+            {lang === 'ja' ? '改行を無視する' : 'Ignore newlines'}
+          </label>
           <button
             className="btn btn-primary"
             onClick={handleCopy}
