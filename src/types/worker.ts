@@ -1,10 +1,16 @@
-import type { TextBlock } from './ocr'
+import type { TextBlock, TextRegion } from './ocr'
 
 // Workerへ送信するメッセージ
 export type WorkerInMessage =
   | { type: 'INITIALIZE' }
   | {
       type: 'OCR_PROCESS'
+      id: string
+      imageData: ImageData
+      startTime: number
+    }
+  | {
+      type: 'LAYOUT_DETECT'
       id: string
       imageData: ImageData
       startTime: number
@@ -40,4 +46,11 @@ export type WorkerOutMessage =
       id?: string
       error: string
       stage?: string
+    }
+  | {
+      type: 'LAYOUT_DONE'
+      id: string
+      textRegions: TextRegion[]
+      croppedImages: ImageData[]
+      startTime: number
     }

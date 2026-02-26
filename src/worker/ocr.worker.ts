@@ -3,6 +3,11 @@
  * バックグラウンドでOCR処理を実行
  * 参照実装: ndlkotenocr-worker/src/worker/ocr-worker.js
  *
+ * メッセージ種別:
+ *   OCR_PROCESS   : 領域OCR用（逐次認識。processRegion で使用）
+ *   LAYOUT_DETECT : バッチOCR用（レイアウト検出のみ実行し LAYOUT_DONE を返す）
+ *                   認識フェーズはメインスレッドが N 本の recognition.worker に並列委譲する
+ *
  * カスケード文字認識:
  *   charCountCategory=3 → recognizer30 (16×256, ≤30文字)
  *   charCountCategory=2 → recognizer50 (16×384, ≤50文字)
@@ -102,6 +107,7 @@ class OCRWorker {
     return this.recognizer100!
   }
 
+  /** 領域OCR用: レイアウト検出 + 逐次認識 + 読み順処理 (processRegion から使用) */
   async processOCR(id: string, imageData: ImageData, startTime: number): Promise<void> {
     try {
       if (!this.isInitialized) {
@@ -130,7 +136,7 @@ class OCRWorker {
         }
       )
 
-      // Stage 2: カスケード文字認識
+      // Stage 2: 逐次文字認識
       this.post({
         type: 'OCR_PROGRESS',
         id,
@@ -200,6 +206,51 @@ class OCRWorker {
       })
     }
   }
+
+  /** バッチOCR用: レイアウト検出のみ実行し LAYOUT_DONE を返す (processImage から使用) */
+  async detectLayout(id: string, imageData: ImageData, startTime: number): Promise<void> {
+    try {
+      if (!this.isInitialized) {
+        await this.initialize()
+      }
+
+      this.post({
+        type: 'OCR_PROGRESS',
+        id,
+        stage: 'layout_detection',
+        progress: 0.1,
+        message: 'Detecting text regions...',
+      })
+
+      const textRegions: TextRegion[] = await this.layoutDetector!.detect(
+        imageData,
+        (progress) => {
+          this.post({
+            type: 'OCR_PROGRESS',
+            id,
+            stage: 'layout_detection',
+            progress: 0.1 + progress * 0.3,
+            message: `Detecting regions... ${Math.round(progress * 100)}%`,
+          })
+        }
+      )
+
+      // 各領域を事前クロップ（メインスレッドに Transferable で返す）
+      const croppedImages = textRegions.map(region => TextRecognizer.cropImageData(imageData, region))
+      const transferables = croppedImages.map(img => img.data.buffer)
+
+      self.postMessage(
+        { type: 'LAYOUT_DONE', id, textRegions, croppedImages, startTime } satisfies WorkerOutMessage,
+        { transfer: transferables }
+      )
+    } catch (error) {
+      this.post({
+        type: 'OCR_ERROR',
+        id,
+        error: (error as Error).message,
+      })
+    }
+  }
 }
 
 const ocrWorker = new OCRWorker()
@@ -214,6 +265,10 @@ self.onmessage = async (event: MessageEvent<WorkerInMessage>) => {
 
     case 'OCR_PROCESS':
       await ocrWorker.processOCR(message.id, message.imageData, message.startTime)
+      break
+
+    case 'LAYOUT_DETECT':
+      await ocrWorker.detectLayout(message.id, message.imageData, message.startTime)
       break
 
     case 'TERMINATE':

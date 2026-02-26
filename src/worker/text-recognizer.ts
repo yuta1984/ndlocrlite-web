@@ -72,13 +72,17 @@ export class TextRecognizer {
   }
 
   async recognize(imageData: ImageData, region: TextRegion): Promise<RecognitionResult> {
+    const cropped = TextRecognizer.cropImageData(imageData, region)
+    return this.recognizeCropped(cropped)
+  }
+
+  async recognizeCropped(croppedImageData: ImageData): Promise<RecognitionResult> {
     if (!this.initialized || !this.session) {
       throw new Error('Text recognizer not initialized')
     }
 
     try {
-      const cropped = this.cropRegion(imageData, region)
-      const inputTensor = this.preprocess(cropped)
+      const inputTensor = this.preprocess(croppedImageData)
       const output = await this.session.run({
         [this.session.inputNames[0]]: inputTensor,
       })
@@ -89,7 +93,7 @@ export class TextRecognizer {
     }
   }
 
-  private cropRegion(imageData: ImageData, region: TextRegion): ImageData {
+  static cropImageData(imageData: ImageData, region: TextRegion): ImageData {
     const sourceCanvas = new OffscreenCanvas(imageData.width, imageData.height)
     const sourceCtx = sourceCanvas.getContext('2d')!
     sourceCtx.putImageData(imageData, 0, 0)
