@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { OCRResult, TextBlock } from './types/ocr'
+import type { OCRResult, TextBlock, BoundingBox } from './types/ocr'
 import type { DBRunEntry } from './types/db'
 import { useI18n } from './hooks/useI18n'
 import { useOCRWorker } from './hooks/useOCRWorker'
@@ -15,11 +15,32 @@ import { ResultPanel } from './components/results/ResultPanel'
 import { ResultActions } from './components/results/ResultActions'
 import { HistoryPanel } from './components/results/HistoryPanel'
 import { SettingsModal } from './components/settings/SettingsModal'
+import { RegionOCRDialog } from './components/viewer/RegionOCRDialog'
 import './App.css'
+
+function cropRegion(srcDataUrl: string, bbox: BoundingBox) {
+  return new Promise<{ previewDataUrl: string; imageData: ImageData }>((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const w = Math.max(1, Math.round(bbox.width))
+      const h = Math.max(1, Math.round(bbox.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, bbox.x, bbox.y, bbox.width, bbox.height, 0, 0, w, h)
+      resolve({
+        previewDataUrl: canvas.toDataURL('image/jpeg', 0.9),
+        imageData: ctx.getImageData(0, 0, w, h),
+      })
+    }
+    img.src = srcDataUrl
+  })
+}
 
 export default function App() {
   const { lang, toggleLanguage } = useI18n()
-  const { isReady, jobState, processImage, resetState } = useOCRWorker()
+  const { isReady, jobState, processImage, processRegion, resetState } = useOCRWorker()
   const { processedImages, isLoading: isLoadingFiles, processFiles, clearImages, fileLoadingState } = useFileProcessor()
   const { runs: historyRuns, saveRun, clearResults } = useResultCache()
 
@@ -29,6 +50,11 @@ export default function App() {
   const [showHistory, setShowHistory] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [regionOCRDialog, setRegionOCRDialog] = useState<{
+    cropDataUrl: string
+    isProcessing: boolean
+    result: { textBlocks: TextBlock[]; fullText: string } | null
+  } | null>(null)
 
   const currentResult = sessionResults[selectedResultIndex] ?? null
 
@@ -277,8 +303,17 @@ export default function App() {
                       textBlocks={currentResult.textBlocks}
                       selectedBlock={selectedBlock}
                       onBlockSelect={setSelectedBlock}
-                      onRegionSelect={(blocks) => {
+                      onRegionSelect={async (blocks, bbox) => {
                         if (blocks.length > 0) setSelectedBlock(blocks[0])
+                        if (!currentResult) return
+                        const { previewDataUrl, imageData } = await cropRegion(currentResult.imageDataUrl, bbox)
+                        setRegionOCRDialog({ cropDataUrl: previewDataUrl, isProcessing: true, result: null })
+                        try {
+                          const result = await processRegion(imageData)
+                          setRegionOCRDialog(prev => prev ? { ...prev, isProcessing: false, result } : null)
+                        } catch {
+                          setRegionOCRDialog(prev => prev ? { ...prev, isProcessing: false, result: { textBlocks: [], fullText: '' } } : null)
+                        }
                       }}
                     />
                   )}
@@ -313,6 +348,15 @@ export default function App() {
       )}
       {showSettings && (
         <SettingsModal onClose={() => setShowSettings(false)} lang={lang} />
+      )}
+      {regionOCRDialog && (
+        <RegionOCRDialog
+          cropDataUrl={regionOCRDialog.cropDataUrl}
+          isProcessing={regionOCRDialog.isProcessing}
+          result={regionOCRDialog.result}
+          lang={lang}
+          onClose={() => setRegionOCRDialog(null)}
+        />
       )}
     </div>
   )

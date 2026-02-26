@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import type { OCRJobState, OCRResult, ProcessedImage } from '../types/ocr'
-import type { WorkerOutMessage } from '../types/worker'
+import type { OCRJobState, OCRResult, ProcessedImage, TextBlock } from '../types/ocr'
+import type { WorkerInMessage, WorkerOutMessage } from '../types/worker'
 import { imageDataToDataUrl } from '../utils/imageLoader'
 
 const initialJobState: OCRJobState = {
@@ -126,9 +126,43 @@ export function useOCRWorker() {
     []
   )
 
+  const processRegion = useCallback(
+    (imageData: ImageData): Promise<{ textBlocks: TextBlock[]; fullText: string }> => {
+      return new Promise((resolve, reject) => {
+        if (!workerRef.current) {
+          reject(new Error('Worker not initialized'))
+          return
+        }
+
+        const id = `region-${Date.now()}`
+
+        const handler = (event: MessageEvent<WorkerOutMessage>) => {
+          const msg = event.data
+          if (msg.id !== id) return  // 他ジョブのメッセージを無視
+
+          if (msg.type === 'OCR_COMPLETE') {
+            workerRef.current?.removeEventListener('message', handler)
+            resolve({ textBlocks: msg.textBlocks, fullText: msg.txt })
+          } else if (msg.type === 'OCR_ERROR') {
+            workerRef.current?.removeEventListener('message', handler)
+            reject(new Error(msg.error))
+          }
+          // OCR_PROGRESS は意図的に無視（jobState に影響させない）
+        }
+
+        workerRef.current.addEventListener('message', handler)
+        workerRef.current.postMessage(
+          { type: 'OCR_PROCESS', id, imageData, startTime: Date.now() } satisfies WorkerInMessage,
+          [imageData.data.buffer]  // Transferable でゼロコピー転送
+        )
+      })
+    },
+    []
+  )
+
   const resetState = useCallback(() => {
     setJobState(initialJobState)
   }, [])
 
-  return { isReady, jobState, processImage, resetState }
+  return { isReady, jobState, processImage, processRegion, resetState }
 }

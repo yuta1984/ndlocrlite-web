@@ -687,3 +687,115 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .footer-author { font-size: 0.75rem; color: var(--color-text-secondary); }
 .footer-github { font-size: 0.75rem; }
+
+/* ─── Region OCR Dialog ──────────────────────────────────── */
+.region-ocr-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.region-ocr-dialog {
+  background: var(--color-surface);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  width: min(480px, 92vw);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.region-ocr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.region-ocr-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.region-ocr-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.25rem;
+  color: var(--color-text-secondary);
+  line-height: 1;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.region-ocr-close:hover { background: var(--color-border); }
+
+.region-ocr-preview-wrap {
+  padding: 0.75rem 1rem;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.region-ocr-preview {
+  max-height: 200px;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.region-ocr-body {
+  padding: 0.75rem 1rem;
+  flex: 1;
+  overflow: auto;
+  min-height: 80px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.region-ocr-processing {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  padding: 0.5rem 0;
+}
+
+.region-ocr-textarea {
+  width: 100%;
+  min-height: 100px;
+  resize: vertical;
+  padding: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  font-family: inherit;
+}
+
+.region-ocr-empty {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  margin: 0;
+  padding: 0.5rem 0;
+}
+
+.region-ocr-footer {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}

@@ -87,7 +87,10 @@ export function ImageViewer({
       return b.x < x2 && b.x + b.width > x1 && b.y < y2 && b.y + b.height > y1
     })
 
-    if (selected.length > 0) onRegionSelect(selected, bbox)
+    const MIN_DRAG = 15 // 元画像座標での最小ドラッグサイズ(px)
+    if (bbox.width >= MIN_DRAG && bbox.height >= MIN_DRAG) {
+      onRegionSelect(selected, bbox)
+    }
 
     setDragStart(null)
     setDragCurrent(null)
