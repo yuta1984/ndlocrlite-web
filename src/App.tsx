@@ -316,7 +316,7 @@ export default function App() {
           </section>
         )}
 
-        {(isWorking || isModelLoading) && (
+        {(isLoadingFiles || isModelLoading) && (
           <div className="processing-section">
             {isLoadingFiles && fileLoadingState && (
               <div className="file-loading-status">
@@ -343,30 +343,45 @@ export default function App() {
           </div>
         )}
 
-        {hasResults && (
+        {(hasResults || isProcessing) && processedImages.length > 0 && (
           <section className="result-section">
-            {/* 左サイドバー: ファイル一覧 */}
-            {sessionResults.length > 1 && (
+            {/* 左サイドバー: 全ファイル一覧（未完了も含む） */}
+            {processedImages.length > 1 && (
               <div className="result-sidebar">
-                {sessionResults.map((result, i) => (
-                  <button
-                    key={result.id}
-                    className={`result-sidebar-item ${i === selectedResultIndex ? 'active' : ''}`}
-                    onClick={() => {
-                      setSelectedResultIndex(i)
-                      setSelectedBlock(null)
-                    }}
-                    title={result.fileName}
-                  >
-                    <img src={result.imageDataUrl} alt={result.fileName} />
-                    <span className="result-sidebar-label">{result.fileName}</span>
-                  </button>
-                ))}
+                {processedImages.map((img, i) => {
+                  const result = sessionResults[i]
+                  const isInProgress = !result && isProcessing && i === sessionResults.length
+                  const isPending = !result && !isInProgress
+                  return (
+                    <button
+                      key={i}
+                      className={`result-sidebar-item ${result && i === selectedResultIndex ? 'active' : ''} ${isPending || isInProgress ? 'sidebar-pending' : ''}`}
+                      onClick={() => { if (result) { setSelectedResultIndex(i); setSelectedBlock(null) } }}
+                      disabled={!result}
+                      title={img.pageIndex ? `${img.fileName} (p.${img.pageIndex})` : img.fileName}
+                    >
+                      <div className="result-sidebar-thumb-wrap">
+                        <img src={result ? result.imageDataUrl : img.thumbnailDataUrl} alt={img.fileName} />
+                        {isInProgress && <div className="sidebar-item-spinner" />}
+                      </div>
+                      <span className="result-sidebar-label">
+                        {img.pageIndex ? `${img.fileName} (p.${img.pageIndex})` : img.fileName}
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
             )}
 
             {/* メインコンテンツ */}
             <div className="result-content">
+              {/* OCR処理中プログレスバー */}
+              {isProcessing && (
+                <div className="result-progress-inline">
+                  <ProgressBar jobState={jobState} lang={lang} />
+                </div>
+              )}
+
               {/* ページナビゲーション */}
               <div className="result-page-nav">
                 <button
@@ -385,16 +400,19 @@ export default function App() {
                     setSelectedBlock(null)
                   }}
                 >
-                  {sessionResults.map((result, i) => (
-                    <option key={result.id} value={i}>
-                      {i + 1} / {sessionResults.length}　{result.fileName}
-                    </option>
-                  ))}
+                  {processedImages.map((img, i) => {
+                    const label = img.pageIndex ? `${img.fileName} (p.${img.pageIndex})` : img.fileName
+                    return (
+                      <option key={i} value={i} disabled={i >= sessionResults.length}>
+                        {i + 1} / {processedImages.length}　{label}
+                      </option>
+                    )
+                  })}
                 </select>
                 <button
                   className="btn-nav"
                   onClick={() => { setSelectedResultIndex(prev => prev + 1); setSelectedBlock(null) }}
-                  disabled={selectedResultIndex === sessionResults.length - 1}
+                  disabled={selectedResultIndex >= sessionResults.length - 1}
                   title={lang === 'ja' ? '次のファイル' : 'Next file'}
                 >
                   →

@@ -404,6 +404,37 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   text-align: center;
 }
 .result-sidebar-item.active .result-sidebar-label { color: var(--color-primary); }
+.result-sidebar-item.sidebar-pending { opacity: 0.45; cursor: default; }
+.result-sidebar-item.sidebar-pending:hover { background: transparent; }
+
+.result-sidebar-thumb-wrap {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+.sidebar-item-spinner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.6);
+  border-radius: 3px;
+}
+.sidebar-item-spinner::after {
+  content: '';
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.result-progress-inline {
+  padding: 0.5rem 0 0.25rem;
+}
 
 /* ===== RESULT CONTENT ===== */
 .result-content {
