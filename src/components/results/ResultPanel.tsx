@@ -3,10 +3,11 @@ import type { OCRResult, TextBlock } from '../../types/ocr'
 interface ResultPanelProps {
   result: OCRResult | null
   selectedBlock: TextBlock | null
+  selectedPageBlockText?: string | null
   lang: 'ja' | 'en'
 }
 
-export function ResultPanel({ result, selectedBlock, lang }: ResultPanelProps) {
+export function ResultPanel({ result, selectedBlock, selectedPageBlockText, lang }: ResultPanelProps) {
   if (!result) {
     return (
       <div className="result-panel empty">
@@ -32,6 +33,15 @@ export function ResultPanel({ result, selectedBlock, lang }: ResultPanelProps) {
           <p className="no-text">
             {lang === 'ja' ? 'テキストが検出されませんでした' : 'No text detected'}
           </p>
+        ) : selectedPageBlockText != null ? (
+          <div>
+            <div className="selected-text-label">
+              {lang === 'ja' ? 'ブロック内のテキスト:' : 'Block text:'}
+            </div>
+            <div className="selected-text">{selectedPageBlockText || '(空)'}</div>
+            <hr className="divider" />
+            <pre className="full-text">{result.fullText}</pre>
+          </div>
         ) : selectedBlock ? (
           // 選択された領域のテキストをハイライト
           <div>

@@ -280,6 +280,7 @@ export function useOCRWorker() {
           fullText: txt,
           processingTimeMs: Date.now() - startTime,
           createdAt: Date.now(),
+          pageBlocks,
         }
 
         setJobState((prev) => ({ ...prev, status: 'done', stageProgress: 1 }))

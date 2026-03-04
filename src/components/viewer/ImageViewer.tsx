@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
-import type { TextBlock, BoundingBox } from '../../types/ocr'
+import type { TextBlock, BoundingBox, PageBlock } from '../../types/ocr'
 
 interface ImageViewerProps {
   imageDataUrl: string
@@ -7,6 +7,9 @@ interface ImageViewerProps {
   selectedBlock: TextBlock | null
   onBlockSelect: (block: TextBlock) => void
   onRegionSelect?: (blocks: TextBlock[], bbox: BoundingBox) => void
+  pageBlocks?: PageBlock[]
+  selectedPageBlock?: PageBlock | null
+  onPageBlockSelect?: (block: PageBlock) => void
 }
 
 export function ImageViewer({
@@ -15,6 +18,9 @@ export function ImageViewer({
   selectedBlock,
   onBlockSelect,
   onRegionSelect,
+  pageBlocks,
+  selectedPageBlock,
+  onPageBlockSelect,
 }: ImageViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
@@ -125,6 +131,22 @@ export function ImageViewer({
 
       {/* テキスト領域オーバーレイ */}
       <div className="viewer-overlay" style={{ width: imgSize.width, height: imgSize.height }}>
+        {/* PageBlock オーバーレイ（段・カラム境界、TextBlock の背面） */}
+        {pageBlocks?.map((block, i) => (
+          <div
+            key={`pb-${i}`}
+            className={`page-block-box ${selectedPageBlock === block ? 'selected' : ''}`}
+            style={{
+              left: block.x * scaleX,
+              top: block.y * scaleY,
+              width: block.width * scaleX,
+              height: block.height * scaleY,
+            }}
+            onClick={(e) => { e.stopPropagation(); onPageBlockSelect?.(block) }}
+            title={`Block ${i + 1}`}
+          />
+        ))}
+
         {textBlocks.map((block, i) => (
           <div
             key={i}

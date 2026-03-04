@@ -36,6 +36,7 @@ export interface OCRResult {
   fullText: string
   processingTimeMs: number
   createdAt: number // Unix timestamp (ms)
+  pageBlocks?: PageBlock[] // DEIMが検出した段・カラム境界
 }
 
 export interface ProcessedImage {

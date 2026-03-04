@@ -553,6 +553,20 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   background: rgba(230, 81, 0, 0.4);
 }
 
+.page-block-box {
+  position: absolute;
+  border: 2px dashed rgba(230, 120, 0, 0.6);
+  background: rgba(230, 120, 0, 0.04);
+  cursor: pointer;
+  pointer-events: all;
+  transition: background 0.1s;
+}
+.page-block-box:hover { background: rgba(230, 120, 0, 0.12); }
+.page-block-box.selected {
+  border-color: rgba(200, 80, 0, 0.9);
+  background: rgba(230, 120, 0, 0.18);
+}
+
 .drag-selection {
   position: absolute;
   border: 2px dashed var(--color-primary);

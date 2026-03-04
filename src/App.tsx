@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import type { OCRResult, TextBlock, BoundingBox } from './types/ocr'
+import type { OCRResult, TextBlock, BoundingBox, PageBlock } from './types/ocr'
 import type { DBRunEntry } from './types/db'
 import { useI18n } from './hooks/useI18n'
 import { useOCRWorker } from './hooks/useOCRWorker'
@@ -48,6 +48,7 @@ export default function App() {
   const [sessionResults, setSessionResults] = useState<OCRResult[]>([])
   const [selectedResultIndex, setSelectedResultIndex] = useState(0)
   const [selectedBlock, setSelectedBlock] = useState<TextBlock | null>(null)
+  const [selectedPageBlock, setSelectedPageBlock] = useState<PageBlock | null>(null)
   const [showHistory, setShowHistory] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -69,6 +70,20 @@ export default function App() {
   } | null>(null)
 
   const currentResult = sessionResults[selectedResultIndex] ?? null
+
+  const selectedPageBlockText = useMemo(() => {
+    if (!selectedPageBlock || !currentResult) return null
+    const cx = (b: TextBlock) => b.x + b.width / 2
+    const cy = (b: TextBlock) => b.y + b.height / 2
+    return currentResult.textBlocks
+      .filter(b =>
+        cx(b) >= selectedPageBlock.x && cx(b) <= selectedPageBlock.x + selectedPageBlock.width &&
+        cy(b) >= selectedPageBlock.y && cy(b) <= selectedPageBlock.y + selectedPageBlock.height
+      )
+      .sort((a, b) => a.readingOrder - b.readingOrder)
+      .map(b => b.text)
+      .join('\n')
+  }, [selectedPageBlock, currentResult])
 
   const handleFilesSelected = useCallback(async (files: File[]) => {
     await processFiles(files)
@@ -174,6 +189,7 @@ export default function App() {
     setSessionResults([])
     setSelectedResultIndex(0)
     setSelectedBlock(null)
+    setSelectedPageBlock(null)
     resetState()
     setIsProcessing(false)
     setIsReadyToProcess(false)
@@ -206,6 +222,7 @@ export default function App() {
     setSessionResults(restoredResults)
     setSelectedResultIndex(0)
     setSelectedBlock(null)
+    setSelectedPageBlock(null)
     setShowHistory(false)
   }
 
@@ -387,7 +404,7 @@ export default function App() {
               <div className="result-page-nav">
                 <button
                   className="btn-nav"
-                  onClick={() => { setSelectedResultIndex(prev => prev - 1); setSelectedBlock(null) }}
+                  onClick={() => { setSelectedResultIndex(prev => prev - 1); setSelectedBlock(null); setSelectedPageBlock(null) }}
                   disabled={selectedResultIndex === 0}
                   title={lang === 'ja' ? '前のファイル' : 'Previous file'}
                 >
@@ -399,6 +416,7 @@ export default function App() {
                   onChange={(e) => {
                     setSelectedResultIndex(Number(e.target.value))
                     setSelectedBlock(null)
+                    setSelectedPageBlock(null)
                   }}
                 >
                   {processedImages.map((img, i) => {
@@ -412,7 +430,7 @@ export default function App() {
                 </select>
                 <button
                   className="btn-nav"
-                  onClick={() => { setSelectedResultIndex(prev => prev + 1); setSelectedBlock(null) }}
+                  onClick={() => { setSelectedResultIndex(prev => prev + 1); setSelectedBlock(null); setSelectedPageBlock(null) }}
                   disabled={selectedResultIndex >= sessionResults.length - 1}
                   title={lang === 'ja' ? '次のファイル' : 'Next file'}
                 >
@@ -432,12 +450,15 @@ export default function App() {
                       imageDataUrl={currentResult.imageDataUrl}
                       textBlocks={currentResult.textBlocks}
                       selectedBlock={selectedBlock}
-                      onBlockSelect={setSelectedBlock}
+                      onBlockSelect={(block) => { setSelectedBlock(block); setSelectedPageBlock(null) }}
                       onRegionSelect={(blocks, bbox) =>
                         currentResult
                           ? handleRegionOCR(blocks, bbox, currentResult.imageDataUrl)
                           : undefined
                       }
+                      pageBlocks={currentResult.pageBlocks}
+                      selectedPageBlock={selectedPageBlock}
+                      onPageBlockSelect={(block) => { setSelectedPageBlock(block); setSelectedBlock(null) }}
                     />
                   )}
                   <p className="region-select-hint">
@@ -448,7 +469,7 @@ export default function App() {
                 </div>
 
                 <div className="result-right">
-                  <ResultPanel result={currentResult} selectedBlock={selectedBlock} lang={lang} />
+                  <ResultPanel result={currentResult} selectedBlock={selectedBlock} selectedPageBlockText={selectedPageBlockText} lang={lang} />
                   <ResultActions results={sessionResults} currentResult={currentResult} lang={lang} />
                 </div>
               </div>
