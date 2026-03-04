@@ -95,17 +95,17 @@ export class LayoutDetector {
         const imageCtx = imageCanvas.getContext('2d')!
         imageCtx.putImageData(imageData, 0, 0)
 
-        // 正方形パディング（左上に配置、黒背景）
-        const paddingCanvas = new OffscreenCanvas(maxWH, maxWH)
-        const paddingCtx = paddingCanvas.getContext('2d')!
-        paddingCtx.fillStyle = 'rgb(0, 0, 0)'
-        paddingCtx.fillRect(0, 0, maxWH, maxWH)
-        paddingCtx.drawImage(imageCanvas, 0, 0)
-
-        // モデル入力サイズにリサイズ
+        // 正方形パディング付きでモデル入力サイズに直接リサイズ（中間大キャンバス不要）
+        // paddingCanvas(maxWH×maxWH) → finalCanvas(800×800) の2ステップを1ステップに統合
+        const scale = this.inputSize.width / maxWH
         const canvas = new OffscreenCanvas(this.inputSize.width, this.inputSize.height)
         const ctx = canvas.getContext('2d')!
-        ctx.drawImage(paddingCanvas, 0, 0, maxWH, maxWH, 0, 0, this.inputSize.width, this.inputSize.height)
+        ctx.fillStyle = 'rgb(0, 0, 0)'
+        ctx.fillRect(0, 0, this.inputSize.width, this.inputSize.height)
+        ctx.drawImage(
+          imageCanvas, 0, 0, imageData.width, imageData.height,
+          0, 0, Math.round(imageData.width * scale), Math.round(imageData.height * scale)
+        )
 
         const resizedImageData = ctx.getImageData(0, 0, this.inputSize.width, this.inputSize.height)
         const { data } = resizedImageData
