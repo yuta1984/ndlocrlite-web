@@ -7,7 +7,8 @@ import { ReadingOrderProcessor } from '../worker/reading-order'
 // ?worker import → Vite が recognition.worker.ts を独立バンドルして Worker コンストラクタを返す
 import RecognitionWorkerFactory from '../worker/recognition.worker.ts?worker'
 
-const N_REC_WORKERS = Math.min(Math.max(navigator.hardwareConcurrency ?? 4, 2), 8)
+const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent)
+const N_REC_WORKERS = isMobile ? 1 : Math.min(Math.max(navigator.hardwareConcurrency ?? 4, 2), 8)
 const readingOrderProcessor = new ReadingOrderProcessor()
 
 const initialJobState: OCRJobState = {
