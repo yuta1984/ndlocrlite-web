@@ -1,28 +1,14 @@
 import type { OCRJobState } from '../../types/ocr'
+import type { Language } from '../../i18n'
+import { createTranslator } from '../../i18n'
 
 interface ProgressBarProps {
   jobState: OCRJobState
-  lang: 'ja' | 'en'
-}
-
-const MODEL_LABELS = {
-  ja: {
-    layout: 'レイアウト検出モデル',
-    rec30: '文字認識モデル（≤30文字）',
-    rec50: '文字認識モデル（≤50文字）',
-    rec100: '文字認識モデル（≤100文字）',
-    downloading: 'モデルをダウンロード中',
-  },
-  en: {
-    layout: 'Layout detection model',
-    rec30: 'Recognition model (≤30 chars)',
-    rec50: 'Recognition model (≤50 chars)',
-    rec100: 'Recognition model (≤100 chars)',
-    downloading: 'Downloading models',
-  },
+  lang: Language
 }
 
 export function ProgressBar({ jobState, lang }: ProgressBarProps) {
+  const t = createTranslator(lang)
   const { status, currentFileIndex, totalFiles, stageProgress, stage, message, modelProgress } = jobState
 
   if (status === 'idle') return null
@@ -30,19 +16,16 @@ export function ProgressBar({ jobState, lang }: ProgressBarProps) {
   const isError = status === 'error'
   const isDone = status === 'done'
   const isDownloading = stage === 'loading_models' && modelProgress != null
-  const labels = MODEL_LABELS[lang]
 
   if (isDownloading) {
     return (
       <div className="progress-container">
-        <div className="progress-title">{labels.downloading}...</div>
+        <div className="progress-title">{t('progress.downloadingModels')}...</div>
         <div className="model-download-bars">
           {(
             [
-              ['layout', labels.layout],
-              ['rec30', labels.rec30],
-              ['rec50', labels.rec50],
-              ['rec100', labels.rec100],
+              ['det', t('progress.detModel')],
+              ['rec', t('progress.recModel')],
             ] as const
           ).map(([key, label]) => (
             <div key={key} className="model-download-row">
@@ -73,9 +56,7 @@ export function ProgressBar({ jobState, lang }: ProgressBarProps) {
     <div className={`progress-container ${isError ? 'error' : ''}`}>
       {totalFiles > 1 && (
         <div className="progress-files">
-          {lang === 'ja'
-            ? `${currentFileIndex} / ${totalFiles} ファイル`
-            : `${currentFileIndex} / ${totalFiles} files`}
+          {t('progress.filesCount', { current: currentFileIndex, total: totalFiles })}
         </div>
       )}
       <div className="progress-bar-track">
