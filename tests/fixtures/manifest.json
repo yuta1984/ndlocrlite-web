@@ -1,0 +1,37 @@
+[
+  {
+    "id": "japanese",
+    "text": "こんにちは",
+    "language": "Japanese",
+    "pngFile": "hello-japanese.png",
+    "pdfFile": "hello-japanese.pdf"
+  },
+  {
+    "id": "korean",
+    "text": "안녕하세요",
+    "language": "Korean",
+    "pngFile": "hello-korean.png",
+    "pdfFile": "hello-korean.pdf"
+  },
+  {
+    "id": "chinese",
+    "text": "你好",
+    "language": "Chinese",
+    "pngFile": "hello-chinese.png",
+    "pdfFile": "hello-chinese.pdf"
+  },
+  {
+    "id": "english",
+    "text": "Hello",
+    "language": "English",
+    "pngFile": "hello-english.png",
+    "pdfFile": "hello-english.pdf"
+  },
+  {
+    "id": "latin",
+    "text": "Salve",
+    "language": "Latin",
+    "pngFile": "hello-latin.png",
+    "pdfFile": "hello-latin.pdf"
+  }
+]
