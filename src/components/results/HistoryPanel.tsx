@@ -1,15 +1,25 @@
 import { useState } from 'react'
 import type { DBRunEntry } from '../../types/db'
+import type { Language } from '../../i18n'
+import { createTranslator } from '../../i18n'
+
+const LOCALE_MAP: Record<Language, string> = {
+  ja: 'ja-JP',
+  en: 'en-US',
+  zh: 'zh-CN',
+  ko: 'ko-KR',
+}
 
 interface HistoryPanelProps {
   runs: DBRunEntry[]
   onSelect: (entry: DBRunEntry) => void
   onClear: () => void
   onClose: () => void
-  lang: 'ja' | 'en'
+  lang: Language
 }
 
 export function HistoryPanel({ runs, onSelect, onClear, onClose, lang }: HistoryPanelProps) {
+  const t = createTranslator(lang)
   const [confirmClear, setConfirmClear] = useState(false)
 
   const handleClear = () => {
@@ -23,7 +33,7 @@ export function HistoryPanel({ runs, onSelect, onClear, onClose, lang }: History
   }
 
   const formatDate = (ts: number) => {
-    return new Date(ts).toLocaleString(lang === 'ja' ? 'ja-JP' : 'en-US', {
+    return new Date(ts).toLocaleString(LOCALE_MAP[lang], {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
@@ -35,14 +45,14 @@ export function HistoryPanel({ runs, onSelect, onClear, onClose, lang }: History
     <div className="panel-overlay" onClick={onClose}>
       <div className="panel" onClick={(e) => e.stopPropagation()}>
         <div className="panel-header">
-          <h2>{lang === 'ja' ? '処理履歴' : 'History'}</h2>
+          <h2>{t('history.title')}</h2>
           <button className="btn-close" onClick={onClose}>✕</button>
         </div>
 
         <div className="panel-body">
           {runs.length === 0 ? (
             <p className="empty-message">
-              {lang === 'ja' ? '処理履歴がありません' : 'No history yet'}
+              {t('history.empty')}
             </p>
           ) : (
             <ul className="history-list">
@@ -63,15 +73,13 @@ export function HistoryPanel({ runs, onSelect, onClear, onClose, lang }: History
                       <span className="history-filename">
                         {fileCount === 1
                           ? firstFile?.fileName
-                          : lang === 'ja'
-                            ? `${firstFile?.fileName} 他${fileCount - 1}件`
-                            : `${firstFile?.fileName} +${fileCount - 1} more`}
+                          : t('history.moreFiles', { name: firstFile?.fileName ?? '', count: fileCount - 1 })}
                       </span>
                       <span className="history-date">{formatDate(run.createdAt)}</span>
                       <span className="history-preview">
                         {previewText
                           ? previewText + '...'
-                          : (lang === 'ja' ? 'テキストなし' : 'No text')}
+                          : t('history.noText')}
                       </span>
                     </div>
                   </li>
@@ -87,9 +95,7 @@ export function HistoryPanel({ runs, onSelect, onClear, onClose, lang }: History
             onClick={handleClear}
             disabled={runs.length === 0}
           >
-            {confirmClear
-              ? (lang === 'ja' ? '本当に削除しますか？' : 'Confirm delete?')
-              : (lang === 'ja' ? 'キャッシュをクリア' : 'Clear Cache')}
+            {confirmClear ? t('history.confirmDelete') : t('history.clearCache')}
           </button>
         </div>
       </div>
