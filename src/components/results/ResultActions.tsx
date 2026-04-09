@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import type { OCRResult } from '../../types/ocr'
+import type { Language } from '../../i18n'
+import { createTranslator } from '../../i18n'
 import { downloadText, copyToClipboard } from '../../utils/textExport'
 
 interface ResultActionsProps {
   results: OCRResult[]
   currentResult: OCRResult | null
-  lang: 'ja' | 'en'
+  lang: Language
 }
 
 export function ResultActions({ results, currentResult, lang }: ResultActionsProps) {
+  const t = createTranslator(lang)
   const [copied, setCopied] = useState(false)
   const [includeFileName, setIncludeFileName] = useState(false)
   const [ignoreNewlines, setIgnoreNewlines] = useState(false)
@@ -26,7 +29,7 @@ export function ResultActions({ results, currentResult, lang }: ResultActionsPro
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      alert(lang === 'ja' ? 'コピーに失敗しました' : 'Failed to copy')
+      alert(t('results.copyFailed'))
     }
   }
 
@@ -51,7 +54,7 @@ export function ResultActions({ results, currentResult, lang }: ResultActionsPro
           checked={includeFileName}
           onChange={(e) => setIncludeFileName(e.target.checked)}
         />
-        {lang === 'ja' ? 'ファイル名を記載する' : 'Include file name'}
+        {t('results.includeFileName')}
       </label>
       <label className="result-actions-option">
         <input
@@ -59,18 +62,18 @@ export function ResultActions({ results, currentResult, lang }: ResultActionsPro
           checked={ignoreNewlines}
           onChange={(e) => setIgnoreNewlines(e.target.checked)}
         />
-        {lang === 'ja' ? '改行を無視する' : 'Ignore newlines'}
+        {t('results.ignoreNewlines')}
       </label>
       <div className="result-actions-buttons">
         <button className="btn btn-primary" onClick={handleCopy} disabled={disabled}>
-          {copied ? (lang === 'ja' ? 'コピーしました！' : 'Copied!') : (lang === 'ja' ? 'コピー' : 'Copy')}
+          {copied ? t('results.copied') : t('results.copy')}
         </button>
         <button className="btn btn-secondary" onClick={handleDownload} disabled={disabled}>
-          {lang === 'ja' ? 'ダウンロード' : 'Download'}
+          {t('results.download')}
         </button>
         {results.length > 1 && (
           <button className="btn btn-secondary" onClick={handleDownloadAll}>
-            {lang === 'ja' ? '全てダウンロード' : 'Download All'}
+            {t('results.downloadAll')}
           </button>
         )}
       </div>

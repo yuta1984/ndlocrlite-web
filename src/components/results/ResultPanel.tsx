@@ -1,17 +1,21 @@
 import type { OCRResult, TextBlock } from '../../types/ocr'
+import type { Language } from '../../i18n'
+import { createTranslator } from '../../i18n'
 
 interface ResultPanelProps {
   result: OCRResult | null
   selectedBlock: TextBlock | null
   selectedPageBlockText?: string | null
-  lang: 'ja' | 'en'
+  lang: Language
 }
 
 export function ResultPanel({ result, selectedBlock, selectedPageBlockText, lang }: ResultPanelProps) {
+  const t = createTranslator(lang)
+
   if (!result) {
     return (
       <div className="result-panel empty">
-        <p>{lang === 'ja' ? '結果なし' : 'No results'}</p>
+        <p>{t('results.noResult')}</p>
       </div>
     )
   }
@@ -21,8 +25,7 @@ export function ResultPanel({ result, selectedBlock, selectedPageBlockText, lang
       <div className="result-header">
         <span className="result-filename">{result.fileName}</span>
         <span className="result-stats">
-          {result.textBlocks.length}
-          {lang === 'ja' ? ' 領域' : ' regions'}
+          {t('results.regions', { count: result.textBlocks.length })}
           {' · '}
           {(result.processingTimeMs / 1000).toFixed(1)}s
         </span>
@@ -31,22 +34,21 @@ export function ResultPanel({ result, selectedBlock, selectedPageBlockText, lang
       <div className="result-text">
         {result.textBlocks.length === 0 ? (
           <p className="no-text">
-            {lang === 'ja' ? 'テキストが検出されませんでした' : 'No text detected'}
+            {t('results.noTextDetected')}
           </p>
         ) : selectedPageBlockText != null ? (
           <div>
             <div className="selected-text-label">
-              {lang === 'ja' ? 'ブロック内のテキスト:' : 'Block text:'}
+              {t('results.blockText')}
             </div>
             <div className="selected-text">{selectedPageBlockText || '(空)'}</div>
             <hr className="divider" />
             <pre className="full-text">{result.fullText}</pre>
           </div>
         ) : selectedBlock ? (
-          // 選択された領域のテキストをハイライト
           <div>
             <div className="selected-text-label">
-              {lang === 'ja' ? '選択領域のテキスト:' : 'Selected region:'}
+              {t('results.selectedRegion')}
             </div>
             <div className="selected-text">{selectedBlock.text || '(空)'}</div>
             <hr className="divider" />
