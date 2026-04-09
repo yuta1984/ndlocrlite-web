@@ -1,43 +1,43 @@
 /**
  * OCR Web Worker
- * バックグラウンドでOCR処理を実行
- * 参照実装: ndlkotenocr-worker/src/worker/ocr-worker.js
+ * PaddleOCR PP-OCRv5 ベース
  *
  * メッセージ種別:
  *   OCR_PROCESS   : 領域OCR用（逐次認識。processRegion で使用）
  *   LAYOUT_DETECT : バッチOCR用（レイアウト検出のみ実行し LAYOUT_DONE を返す）
  *                   認識フェーズはメインスレッドが N 本の recognition.worker に並列委譲する
- *
- * カスケード文字認識:
- *   charCountCategory=3 → recognizer30 (16×256, ≤30文字)
- *   charCountCategory=2 → recognizer50 (16×384, ≤50文字)
- *   それ以外            → recognizer100 (16×768, ≤100文字)
  */
 
 import './onnx-config'
-import { loadModel } from './model-loader'
+import { loadModel, getRecModelKey } from './model-loader'
 import { LayoutDetector } from './layout-detector'
 import { TextRecognizer } from './text-recognizer'
 import { ReadingOrderProcessor } from './reading-order'
-import type { TextBlock } from '../types/ocr'
+import type { TextBlock, OCRLanguage } from '../types/ocr'
 import type { WorkerInMessage, WorkerOutMessage } from '../types/worker'
+
+// 言語→辞書パスのマッピング
+const DICT_PATHS: Record<OCRLanguage, string> = {
+  chinese: '/config/paddleocr/chinese_dict.txt',
+  english: '/config/paddleocr/english_dict.txt',
+  korean: '/config/paddleocr/korean_dict.txt',
+  latin: '/config/paddleocr/latin_dict.txt',
+}
 
 class OCRWorker {
   private layoutDetector: LayoutDetector | null = null
-  private recognizer30: TextRecognizer | null = null  // ≤30文字 [1,3,16,256]
-  private recognizer50: TextRecognizer | null = null  // ≤50文字 [1,3,16,384]
-  private recognizer100: TextRecognizer | null = null // ≤100文字 [1,3,16,768]
+  private recognizer: TextRecognizer | null = null
   private readingOrderProcessor = new ReadingOrderProcessor()
   private isInitialized = false
-  private layoutOnly = false
+  private language: OCRLanguage = 'chinese'
 
   private post(message: WorkerOutMessage) {
     self.postMessage(message)
   }
 
-  async initialize(layoutOnly = false): Promise<void> {
+  async initialize(layoutOnly = false, language: OCRLanguage = 'chinese'): Promise<void> {
     if (this.isInitialized) return
-    this.layoutOnly = layoutOnly
+    this.language = language
 
     try {
       this.post({
@@ -48,24 +48,25 @@ class OCRWorker {
       })
 
       if (layoutOnly) {
-        // モバイル: レイアウトモデルのみロード（認識モデルは processOCR 時に遅延ロード）
-        const layoutModelData = await loadModel('layout', (p) => {
+        // モバイル: 検出モデルのみロード（認識モデルは processOCR 時に遅延ロード）
+        const detModelData = await loadModel('det', (p) => {
           this.post({
             type: 'OCR_PROGRESS',
             stage: 'loading_models',
             progress: 0.02 + p * 0.73,
-            message: `Loading models... ${Math.round(p * 100)}%`,
-            modelProgress: { layout: p, rec30: 0, rec50: 0, rec100: 0 },
+            message: `Loading detection model... ${Math.round(p * 100)}%`,
+            modelProgress: { det: p, rec: 0 },
           })
         })
-        this.post({ type: 'OCR_PROGRESS', stage: 'initializing_models', progress: 0.76, message: 'Preparing layout model...' })
+        this.post({ type: 'OCR_PROGRESS', stage: 'initializing_models', progress: 0.76, message: 'Preparing detection model...' })
         this.layoutDetector = new LayoutDetector()
-        await this.layoutDetector.initialize(layoutModelData)
+        await this.layoutDetector.initialize(detModelData)
       } else {
-        // デスクトップ: 4モデルを並列ダウンロード（各モデルの進捗を合算してレポート）
-        const progresses = { layout: 0, rec30: 0, rec50: 0, rec100: 0 }
+        // デスクトップ: det + rec を並列ダウンロード
+        const recModelKey = getRecModelKey(language)
+        const progresses = { det: 0, rec: 0 }
         const reportProgress = () => {
-          const avg = (progresses.layout + progresses.rec30 + progresses.rec50 + progresses.rec100) / 4
+          const avg = (progresses.det + progresses.rec) / 2
           this.post({
             type: 'OCR_PROGRESS',
             stage: 'loading_models',
@@ -75,29 +76,19 @@ class OCRWorker {
           })
         }
 
-        const [layoutModelData, rec30Data, rec50Data, rec100Data] = await Promise.all([
-          loadModel('layout',        (p) => { progresses.layout = p; reportProgress() }),
-          loadModel('recognition30', (p) => { progresses.rec30  = p; reportProgress() }),
-          loadModel('recognition50', (p) => { progresses.rec50  = p; reportProgress() }),
-          loadModel('recognition100',(p) => { progresses.rec100 = p; reportProgress() }),
+        const [detModelData, recModelData] = await Promise.all([
+          loadModel('det', (p) => { progresses.det = p; reportProgress() }),
+          loadModel(recModelKey, (p) => { progresses.rec = p; reportProgress() }),
         ])
 
-        // ONNXセッション作成（WASMシングルスレッドのため直列）
-        this.post({ type: 'OCR_PROGRESS', stage: 'initializing_models', progress: 0.76, message: 'Preparing layout model...' })
+        // ONNXセッション作成
+        this.post({ type: 'OCR_PROGRESS', stage: 'initializing_models', progress: 0.76, message: 'Preparing detection model...' })
         this.layoutDetector = new LayoutDetector()
-        await this.layoutDetector.initialize(layoutModelData)
+        await this.layoutDetector.initialize(detModelData)
 
-        this.post({ type: 'OCR_PROGRESS', stage: 'initializing_models', progress: 0.83, message: 'Preparing recognition model (30)...' })
-        this.recognizer30 = new TextRecognizer([1, 3, 16, 256])
-        await this.recognizer30.initialize(rec30Data)
-
-        this.post({ type: 'OCR_PROGRESS', stage: 'initializing_models', progress: 0.90, message: 'Preparing recognition model (50)...' })
-        this.recognizer50 = new TextRecognizer([1, 3, 16, 384])
-        await this.recognizer50.initialize(rec50Data)
-
-        this.post({ type: 'OCR_PROGRESS', stage: 'initializing_models', progress: 0.96, message: 'Preparing recognition model (100)...' })
-        this.recognizer100 = new TextRecognizer([1, 3, 16, 768])
-        await this.recognizer100.initialize(rec100Data)
+        this.post({ type: 'OCR_PROGRESS', stage: 'initializing_models', progress: 0.90, message: 'Preparing recognition model...' })
+        this.recognizer = new TextRecognizer(DICT_PATHS[language])
+        await this.recognizer.initialize(recModelData)
       }
 
       this.isInitialized = true
@@ -119,38 +110,13 @@ class OCRWorker {
   }
 
   /** 認識モデルを遅延ロード（layoutOnly モードで processOCR が呼ばれた場合） */
-  private async ensureRecognizers(): Promise<void> {
-    if (this.recognizer100) return  // rec100 があれば最低限OK
+  private async ensureRecognizer(): Promise<void> {
+    if (this.recognizer) return
 
-    if (this.layoutOnly) {
-      // モバイル: rec100 のみ（WASM ランタイムを 1 つに抑えるため）
-      const rec100Data = await loadModel('recognition100')
-      this.recognizer100 = new TextRecognizer([1, 3, 16, 768])
-      await this.recognizer100.initialize(rec100Data)
-    } else {
-      // デスクトップ: 3モデル全部
-      if (this.recognizer30 && this.recognizer50) return
-      const [rec30Data, rec50Data, rec100Data] = await Promise.all([
-        loadModel('recognition30'),
-        loadModel('recognition50'),
-        loadModel('recognition100'),
-      ])
-      this.recognizer30 = new TextRecognizer([1, 3, 16, 256])
-      await this.recognizer30.initialize(rec30Data)
-      this.recognizer50 = new TextRecognizer([1, 3, 16, 384])
-      await this.recognizer50.initialize(rec50Data)
-      this.recognizer100 = new TextRecognizer([1, 3, 16, 768])
-      await this.recognizer100.initialize(rec100Data)
-    }
-  }
-
-  /** charCountCategory に応じたモデルを選択 */
-  private selectRecognizer(charCountCategory?: number): TextRecognizer {
-    if (!this.layoutOnly) {
-      if (charCountCategory === 3) return this.recognizer30!
-      if (charCountCategory === 2) return this.recognizer50!
-    }
-    return this.recognizer100!  // モバイルは常に rec100
+    const recModelKey = getRecModelKey(this.language)
+    const recModelData = await loadModel(recModelKey)
+    this.recognizer = new TextRecognizer(DICT_PATHS[this.language])
+    await this.recognizer.initialize(recModelData)
   }
 
   /** 領域OCR用: レイアウト検出 + 逐次認識 + 読み順処理 (processRegion から使用) */
@@ -159,7 +125,7 @@ class OCRWorker {
       if (!this.isInitialized) {
         await this.initialize()
       }
-      await this.ensureRecognizers()
+      await this.ensureRecognizer()
 
       // Stage 1: レイアウト検出
       this.post({
@@ -170,7 +136,7 @@ class OCRWorker {
         message: 'Detecting text regions...',
       })
 
-      const { lines: textRegions, blocks: pageBlocks } = await this.layoutDetector!.detect(
+      const { lines: textRegions } = await this.layoutDetector!.detect(
         imageData,
         (progress) => {
           this.post({
@@ -183,7 +149,7 @@ class OCRWorker {
         }
       )
 
-      // Stage 2: 逐次文字認識（cropImageDataBatch で sourceCanvas を1回だけ生成）
+      // Stage 2: 逐次文字認識
       this.post({
         type: 'OCR_PROGRESS',
         id,
@@ -196,8 +162,7 @@ class OCRWorker {
       const recognitionResults: TextBlock[] = []
       for (let i = 0; i < textRegions.length; i++) {
         const region = textRegions[i]
-        const recognizer = this.selectRecognizer(region.charCountCategory)
-        const result = await recognizer.recognizeCropped(croppedImages[i])
+        const result = await this.recognizer!.recognizeCropped(croppedImages[i])
 
         recognitionResults.push({
           ...region,
@@ -223,7 +188,7 @@ class OCRWorker {
         message: 'Processing reading order...',
       })
 
-      const orderedResults = this.readingOrderProcessor.process(recognitionResults, pageBlocks)
+      const orderedResults = this.readingOrderProcessor.process(recognitionResults, [])
 
       // Stage 4: 出力生成
       this.post({
@@ -255,7 +220,7 @@ class OCRWorker {
     }
   }
 
-  /** バッチOCR用: レイアウト検出のみ実行し LAYOUT_DONE を返す (processImage から使用) */
+  /** バッチOCR用: レイアウト検出のみ実行し LAYOUT_DONE を返す */
   async detectLayout(id: string, imageData: ImageData, startTime: number): Promise<void> {
     try {
       if (!this.isInitialized) {
@@ -308,7 +273,7 @@ self.onmessage = async (event: MessageEvent<WorkerInMessage>) => {
 
   switch (message.type) {
     case 'INITIALIZE':
-      await ocrWorker.initialize(message.layoutOnly)
+      await ocrWorker.initialize(message.layoutOnly, message.language)
       break
 
     case 'OCR_PROCESS':
