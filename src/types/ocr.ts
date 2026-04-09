@@ -5,10 +5,11 @@ export interface BoundingBox {
   height: number
 }
 
+/** OCR言語（認識モデル＋辞書の選択に使用） */
+export type OCRLanguage = 'chinese' | 'english' | 'korean' | 'latin'
+
 export interface TextRegion extends BoundingBox {
   confidence: number
-  classId: number
-  charCountCategory?: number // DEIMモデルが出力する文字数カテゴリ (1, 2, 3)
 }
 
 export interface TextBlock extends TextRegion {
@@ -62,5 +63,5 @@ export interface OCRJobState {
   stage: string
   message: string
   errorMessage?: string
-  modelProgress?: { layout: number; rec30: number; rec50: number; rec100: number }
+  modelProgress?: { det: number; rec: number }
 }

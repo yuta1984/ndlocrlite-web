@@ -1,8 +1,8 @@
-import type { TextBlock, TextRegion, PageBlock } from './ocr'
+import type { TextBlock, TextRegion, PageBlock, OCRLanguage } from './ocr'
 
 // Workerへ送信するメッセージ
 export type WorkerInMessage =
-  | { type: 'INITIALIZE'; layoutOnly?: boolean }
+  | { type: 'INITIALIZE'; layoutOnly?: boolean; language?: OCRLanguage }
   | {
       type: 'OCR_PROCESS'
       id: string
@@ -18,10 +18,8 @@ export type WorkerInMessage =
   | { type: 'TERMINATE' }
 
 export interface ModelProgress {
-  layout: number
-  rec30: number
-  rec50: number
-  rec100: number
+  det: number
+  rec: number
 }
 
 // Workerから受信するメッセージ
