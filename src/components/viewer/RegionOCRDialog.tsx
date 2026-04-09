@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react'
 import type { TextBlock } from '../../types/ocr'
+import type { Language } from '../../i18n'
+import { createTranslator } from '../../i18n'
 
 interface RegionOCRDialogProps {
   cropDataUrl: string
   isProcessing: boolean
   result: { textBlocks: TextBlock[]; fullText: string } | null
-  lang: 'ja' | 'en'
+  lang: Language
   onClose: () => void
 }
 
 export function RegionOCRDialog({ cropDataUrl, isProcessing, result, lang, onClose }: RegionOCRDialogProps) {
+  const t = createTranslator(lang)
   const [copied, setCopied] = useState(false)
   const [ignoreNewlines, setIgnoreNewlines] = useState(false)
 
@@ -34,7 +37,7 @@ export function RegionOCRDialog({ cropDataUrl, isProcessing, result, lang, onClo
       <div className="region-ocr-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="region-ocr-header">
           <span className="region-ocr-title">
-            {lang === 'ja' ? '選択領域の OCR 結果' : 'Region OCR Result'}
+            {t('region.title')}
           </span>
           <button className="region-ocr-close" onClick={onClose} aria-label="Close">×</button>
         </div>
@@ -47,7 +50,7 @@ export function RegionOCRDialog({ cropDataUrl, isProcessing, result, lang, onClo
           {isProcessing ? (
             <div className="region-ocr-processing">
               <div className="file-loading-spinner" />
-              <span>{lang === 'ja' ? '認識中...' : 'Recognizing...'}</span>
+              <span>{t('region.recognizing')}</span>
             </div>
           ) : result && result.fullText ? (
             <textarea
@@ -57,7 +60,7 @@ export function RegionOCRDialog({ cropDataUrl, isProcessing, result, lang, onClo
             />
           ) : (
             <p className="region-ocr-empty">
-              {lang === 'ja' ? 'テキストが見つかりませんでした' : 'No text found'}
+              {t('region.noText')}
             </p>
           )}
         </div>
@@ -69,16 +72,14 @@ export function RegionOCRDialog({ cropDataUrl, isProcessing, result, lang, onClo
               checked={ignoreNewlines}
               onChange={(e) => setIgnoreNewlines(e.target.checked)}
             />
-            {lang === 'ja' ? '改行を無視する' : 'Ignore newlines'}
+            {t('region.ignoreNewlines')}
           </label>
           <button
             className="btn btn-primary"
             onClick={handleCopy}
             disabled={isProcessing || !result?.fullText}
           >
-            {copied
-              ? (lang === 'ja' ? 'コピーしました' : 'Copied!')
-              : (lang === 'ja' ? 'コピー' : 'Copy')}
+            {copied ? t('results.copied') : t('results.copy')}
           </button>
         </div>
       </div>
