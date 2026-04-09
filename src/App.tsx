@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import type { OCRResult, TextBlock, BoundingBox, PageBlock } from './types/ocr'
+import type { OCRResult, OCRLanguage, TextBlock, BoundingBox, PageBlock } from './types/ocr'
 import type { DBRunEntry } from './types/db'
 import { useI18n } from './hooks/useI18n'
 import { useOCRWorker } from './hooks/useOCRWorker'
@@ -40,8 +40,9 @@ function cropRegion(srcDataUrl: string, bbox: BoundingBox) {
 }
 
 export default function App() {
-  const { lang, toggleLanguage } = useI18n()
-  const { isReady, jobState, processImage, processRegion, resetState } = useOCRWorker()
+  const { lang, t, setLanguage } = useI18n()
+  const [ocrLanguage, setOcrLanguage] = useState<OCRLanguage>('chinese')
+  const { isReady, jobState, processImage, processRegion, resetState } = useOCRWorker(ocrLanguage)
   const { processedImages, isLoading: isLoadingFiles, processFiles, clearImages, fileLoadingState } = useFileProcessor()
   const { runs: historyRuns, saveRun, clearResults } = useResultCache()
 
@@ -235,7 +236,7 @@ export default function App() {
     <div className="app">
       <Header
         lang={lang}
-        onToggleLanguage={toggleLanguage}
+        onSetLanguage={setLanguage}
         onOpenSettings={() => setShowSettings(true)}
         onOpenHistory={() => setShowHistory(true)}
         onLogoClick={handleClear}
@@ -248,10 +249,10 @@ export default function App() {
             <div className="upload-actions">
               <DirectoryPicker onFilesSelected={handleFilesSelected} lang={lang} disabled={isWorking} />
               <button className="btn btn-secondary" onClick={handlePasteFromClipboard} disabled={isWorking}>
-                {lang === 'ja' ? 'クリップボードから貼り付け' : 'Paste from Clipboard'}
+                {t('upload.pasteClipboard')}
               </button>
               <button className="btn btn-secondary" onClick={handleSampleLoad} disabled={isWorking}>
-                {lang === 'ja' ? 'サンプルを試す' : 'Try Sample'}
+                {t('upload.trySample')}
               </button>
             </div>
           </section>
@@ -286,7 +287,7 @@ export default function App() {
                     className="btn-nav"
                     onClick={() => setPendingImageIndex(prev => prev - 1)}
                     disabled={pendingImageIndex === 0}
-                    title={lang === 'ja' ? '前のファイル' : 'Previous file'}
+                    title={t('nav.prevFile')}
                   >←</button>
                   <select
                     className="result-page-select"
@@ -304,7 +305,7 @@ export default function App() {
                     className="btn-nav"
                     onClick={() => setPendingImageIndex(prev => prev + 1)}
                     disabled={pendingImageIndex === processedImages.length - 1}
-                    title={lang === 'ja' ? '次のファイル' : 'Next file'}
+                    title={t('nav.nextFile')}
                   >→</button>
                 </div>
               )}
@@ -312,7 +313,7 @@ export default function App() {
               <div className="result-main">
                 <div className="result-left">
                   <button className="btn btn-primary btn-above-viewer" onClick={() => setIsReadyToProcess(true)}>
-                    {lang === 'ja' ? '認識を開始' : 'Start Recognition'}
+                    {t('nav.startRecognition')}
                   </button>
                   <ImageViewer
                     imageDataUrl={pendingDataUrls[pendingImageIndex] ?? ''}
@@ -324,9 +325,7 @@ export default function App() {
                     }
                   />
                   <p className="region-select-hint">
-                    {lang === 'ja'
-                      ? 'マウスで領域をドラッグすると、その領域のみ認識をおこないます'
-                      : 'Drag to select a region and run OCR on that area only'}
+                    {t('nav.regionSelectHint')}
                   </p>
                 </div>
               </div>
@@ -341,21 +340,15 @@ export default function App() {
                 <div className="file-loading-spinner" />
                 <span className="file-loading-message">
                   {fileLoadingState.currentPage != null && fileLoadingState.totalPages != null
-                    ? lang === 'ja'
-                      ? `${fileLoadingState.fileName} をレンダリング中... (${fileLoadingState.currentPage} / ${fileLoadingState.totalPages} ページ)`
-                      : `Rendering ${fileLoadingState.fileName}... (page ${fileLoadingState.currentPage} / ${fileLoadingState.totalPages})`
-                    : lang === 'ja'
-                      ? `${fileLoadingState.fileName} を読み込み中...`
-                      : `Loading ${fileLoadingState.fileName}...`}
+                    ? t('nav.renderingFile', { fileName: fileLoadingState.fileName, currentPage: fileLoadingState.currentPage, totalPages: fileLoadingState.totalPages })
+                    : t('nav.loadingFile', { fileName: fileLoadingState.fileName })}
                 </span>
               </div>
             )}
             <ProgressBar jobState={jobState} lang={lang} />
             {!isReady && !isModelLoading && (
               <p className="model-loading-note">
-                {lang === 'ja'
-                  ? '初回起動時はモデルのダウンロードに時間がかかります（数分程度）。次回以降はキャッシュから高速起動します。'
-                  : 'First run requires model download (may take a few minutes). Subsequent runs will use the cached model.'}
+                {t('nav.modelLoadingNote')}
               </p>
             )}
           </div>
@@ -406,7 +399,7 @@ export default function App() {
                   className="btn-nav"
                   onClick={() => { setSelectedResultIndex(prev => prev - 1); setSelectedBlock(null); setSelectedPageBlock(null) }}
                   disabled={selectedResultIndex === 0}
-                  title={lang === 'ja' ? '前のファイル' : 'Previous file'}
+                  title={t('nav.prevFile')}
                 >
                   ←
                 </button>
@@ -432,7 +425,7 @@ export default function App() {
                   className="btn-nav"
                   onClick={() => { setSelectedResultIndex(prev => prev + 1); setSelectedBlock(null); setSelectedPageBlock(null) }}
                   disabled={selectedResultIndex >= sessionResults.length - 1}
-                  title={lang === 'ja' ? '次のファイル' : 'Next file'}
+                  title={t('nav.nextFile')}
                 >
                   →
                 </button>
@@ -442,7 +435,7 @@ export default function App() {
                 <div className="result-left">
                   {!isProcessing && (
                     <button className="btn btn-secondary btn-above-viewer" onClick={handleClear}>
-                      {lang === 'ja' ? '新しいファイルを処理' : 'Process New Files'}
+                      {t('nav.processNewFiles')}
                     </button>
                   )}
                   {currentResult && (
@@ -462,9 +455,7 @@ export default function App() {
                     />
                   )}
                   <p className="region-select-hint">
-                    {lang === 'ja'
-                      ? 'マウスで領域をドラッグすると、その領域のみ認識をおこないます'
-                      : 'Drag to select a region and run OCR on that area only'}
+                    {t('nav.regionSelectHint')}
                   </p>
                 </div>
 
@@ -491,7 +482,12 @@ export default function App() {
         />
       )}
       {showSettings && (
-        <SettingsModal onClose={() => setShowSettings(false)} lang={lang} />
+        <SettingsModal
+          onClose={() => setShowSettings(false)}
+          lang={lang}
+          ocrLanguage={ocrLanguage}
+          onOcrLanguageChange={setOcrLanguage}
+        />
       )}
       {regionOCRDialog && (
         <RegionOCRDialog
