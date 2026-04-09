@@ -24,9 +24,10 @@ export default defineConfig({
 
   server: {
     // SharedArrayBuffer用のCOOP/COEPヘッダー（onnxruntime-webのマルチスレッド推論に必要）
+    // credentialless: クロスオリジン(HuggingFace CDN)からのモデルダウンロードを許可
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Embedder-Policy': 'credentialless',
     },
   },
 })
