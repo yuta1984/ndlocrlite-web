@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import type { OCRJobState, OCRResult, ProcessedImage, TextBlock, TextRegion, PageBlock } from '../types/ocr'
+import type { OCRJobState, OCRLanguage, OCRResult, ProcessedImage, TextBlock, TextRegion, PageBlock } from '../types/ocr'
 import type { WorkerInMessage, WorkerOutMessage } from '../types/worker'
 import type { RecWorkerInMessage, RecWorkerOutMessage } from '../types/recognition-worker'
 import { imageDataToDataUrl } from '../utils/imageLoader'
@@ -21,14 +21,16 @@ const initialJobState: OCRJobState = {
   message: '',
 }
 
-export function useOCRWorker() {
+export function useOCRWorker(language: OCRLanguage = 'chinese') {
   const workerRef = useRef<Worker | null>(null)
   const recWorkersRef = useRef<Worker[]>([])
   const [isReady, setIsReady] = useState(false)
   const [jobState, setJobState] = useState<OCRJobState>(initialJobState)
 
-  // OCR Worker + 認識 Worker を起動
+  // OCR Worker + 認識 Worker を起動（language 変更時に再初期化）
   useEffect(() => {
+    setIsReady(false)
+
     const worker = new Worker(
       new URL('../worker/ocr.worker.ts', import.meta.url),
       { type: 'module' }
@@ -51,7 +53,7 @@ export function useOCRWorker() {
     }
 
     // OCR Worker 初期化
-    worker.postMessage({ type: 'INITIALIZE', layoutOnly: isMobile } satisfies WorkerInMessage)
+    worker.postMessage({ type: 'INITIALIZE', layoutOnly: isMobile, language } satisfies WorkerInMessage)
 
     worker.onmessage = (event: MessageEvent<WorkerOutMessage>) => {
       const msg = event.data
@@ -82,7 +84,7 @@ export function useOCRWorker() {
         }
         // REC_PROGRESS は初期化進捗として無視（OCR Worker のモデル進捗を主表示に使用）
       }
-      w.postMessage({ type: 'REC_INIT', singleModel: isMobile } satisfies RecWorkerInMessage)
+      w.postMessage({ type: 'REC_INIT', language } satisfies RecWorkerInMessage)
     })
 
     return () => {
@@ -95,7 +97,7 @@ export function useOCRWorker() {
       workerRef.current = null
       recWorkersRef.current = []
     }
-  }, [])
+  }, [language])
 
   /**
    * processImage: バッチOCR用（LAYOUT_DETECT → 並列認識 → 読み順）
@@ -229,10 +231,10 @@ export function useOCRWorker() {
 
     // インデックス均等分割（round-robin）
     const N = recWorkers.length
-    type Job = { id: number; croppedImageData: ImageData; charCountCategory?: number }
+    type Job = { id: number; croppedImageData: ImageData }
     const chunks: Job[][] = Array.from({ length: N }, () => [])
-    textRegions.forEach((region, i) => {
-      chunks[i % N].push({ id: i, croppedImageData: croppedImages[i], charCountCategory: region.charCountCategory })
+    textRegions.forEach((_region, i) => {
+      chunks[i % N].push({ id: i, croppedImageData: croppedImages[i] })
     })
 
     const dispatch = (worker: Worker, jobs: Job[]): Promise<Array<{ id: number; text: string; confidence: number }>> =>
