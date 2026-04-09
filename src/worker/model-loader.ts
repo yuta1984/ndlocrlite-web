@@ -1,25 +1,30 @@
 /**
  * モデルファイルのダウンロード・IndexedDBキャッシュ管理
- * 参照実装: ndlkotenocr-worker/src/utils/model-loader.js
+ * PaddleOCR ONNX モデル（HuggingFace CDN 配信）
  */
 
 const DB_NAME = 'NDLOCRLiteDB'
 const DB_VERSION = 2
 const STORE_NAME = 'models'
 
-// モデルのバージョン（URLが変わったらここを更新）
-export const MODEL_VERSION = '1.0.0'
+// モデルのバージョン（モデル変更時にここを更新してキャッシュ無効化）
+export const MODEL_VERSION = '2.0.0-paddleocr'
 
-// モデル配信ベースURL（環境変数 VITE_MODEL_BASE_URL で指定、末尾スラッシュなし）
-const MODEL_BASE_URL = (import.meta.env.VITE_MODEL_BASE_URL as string | undefined) ?? ''
+// HuggingFace CDN ベースURL
+const HF_BASE = 'https://huggingface.co/monkt/paddleocr-onnx/resolve/main'
 
-// ONNXモデルのURL
+// ONNXモデルのURL（PaddleOCR PP-OCRv5）
 export const MODEL_URLS: Record<string, string> = {
-  layout: `${MODEL_BASE_URL}/deim-s-1024x1024.onnx`,
-  // カスケード文字認識モデル（行の文字数カテゴリに応じて使い分け）
-  recognition30: `${MODEL_BASE_URL}/parseq-ndl-30.onnx`,  // カテゴリ3: ≤30文字 [1,3,16,256]
-  recognition50: `${MODEL_BASE_URL}/parseq-ndl-50.onnx`,  // カテゴリ2: ≤50文字 [1,3,16,384]
-  recognition100: `${MODEL_BASE_URL}/parseq-ndl-100.onnx`, // カテゴリ1: ≤100文字 [1,3,16,768]
+  det: `${HF_BASE}/detection/v5/det.onnx`,
+  rec_chinese: `${HF_BASE}/languages/chinese/rec.onnx`,
+  rec_english: `${HF_BASE}/languages/english/rec.onnx`,
+  rec_korean: `${HF_BASE}/languages/korean/rec.onnx`,
+  rec_latin: `${HF_BASE}/languages/latin/rec.onnx`,
+}
+
+// 言語→認識モデルキーのマッピング
+export function getRecModelKey(language: string): string {
+  return `rec_${language}`
 }
 
 function initDB(): Promise<IDBDatabase> {
