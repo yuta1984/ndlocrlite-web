@@ -1,39 +1,42 @@
 /**
- * レイアウト検出モジュール（DEIMv2モデル）
- * 参照実装: ndlocr-lite/src/deim.py
+ * レイアウト検出モジュール（PaddleOCR DB テキスト検出モデル）
  *
- * DEIMモデルの入出力:
- *   入力[0]: 画像テンソル [1, 3, H, W] (ImageNet正規化)
- *   入力[1]: im_shape [[H, W]] (int64)
- *   出力[0]: class_ids (1-indexed)
- *   出力[1]: bboxes [N, 4] (x1,y1,x2,y2 in input pixel space)
- *   出力[2]: scores
- *   出力[3]: char_counts (1.0/2.0/3.0 のカテゴリ、省略時は100.0)
+ * DB (Differentiable Binarization) モデルの入出力:
+ *   入力: 画像テンソル [1, 3, H, W] (ImageNet正規化, BGR)
+ *   出力: 確率マップ [1, 1, H, W]
+ *
+ * 後処理:
+ *   1. 二値化 (threshold=0.3)
+ *   2. 連結成分抽出 (findContours相当)
+ *   3. box_thresh(0.6) フィルタリング
+ *   4. unclip (ratio=1.5) でボックス拡張
+ *   5. 元画像座標へスケール変換
  */
 
 import type * as OrtType from 'onnxruntime-web'
 import { ort, createSession } from './onnx-config'
-import type { TextRegion, PageBlock, LayoutDetectionResult } from '../types/ocr'
+import type { TextRegion, LayoutDetectionResult } from '../types/ocr'
 
-// ndl.yaml の line クラスID (0-indexed, class_index = label - 1)
-const LINE_CLASS_IDS = new Set([1, 2, 3, 4, 5, 16]) // line_main, line_caption, line_ad, line_note, line_note_tochu, line_title
-const BLOCK_CLASS_ID = 0 // text_block (段・カラム境界)
+const LIMIT_SIDE_LEN = 960
+const BINARY_THRESH = 0.3
+const BOX_THRESH = 0.6
+const UNCLIP_RATIO = 1.5
+const MIN_BOX_SIZE = 3
 
 interface PreprocessResult {
   tensor: OrtType.Tensor
   metadata: {
     originalWidth: number
     originalHeight: number
-    maxWH: number
-    inputWidth: number
-    inputHeight: number
+    resizedWidth: number
+    resizedHeight: number
+    ratioW: number
+    ratioH: number
   }
 }
 
 export class LayoutDetector {
   private session: OrtType.InferenceSession | null = null
-  // deim-s-1024x1024.onnx の実際の入力サイズ（ファイル名は 1024 だが実体は 800x800）
-  private inputSize = { width: 800, height: 800 }
   private initialized = false
 
   async initialize(modelData: ArrayBuffer): Promise<void> {
@@ -42,7 +45,7 @@ export class LayoutDetector {
     try {
       this.session = await createSession(modelData)
       this.initialized = true
-      console.log(`Layout detector initialized: input ${this.inputSize.width}×${this.inputSize.height}`)
+      console.log(`[LayoutDetector] PaddleOCR DB detector initialized`)
     } catch (error) {
       console.error('Failed to initialize layout detector:', error)
       throw error
@@ -58,191 +61,289 @@ export class LayoutDetector {
     }
 
     if (onProgress) onProgress(0.1)
-    const { tensor, metadata } = await this.preprocessImage(imageData)
+    const { tensor, metadata } = this.preprocessImage(imageData)
 
-    if (onProgress) onProgress(0.5)
+    if (onProgress) onProgress(0.4)
 
-    // DEIMモデルは2入力: 画像テンソル + im_shape
-    const inputNames = this.session.inputNames
-    const inputs: Record<string, OrtType.Tensor> = {
-      [inputNames[0]]: tensor,
-    }
-    if (inputNames.length > 1) {
-      inputs[inputNames[1]] = new ort.Tensor(
-        'int64',
-        BigInt64Array.from([BigInt(this.inputSize.height), BigInt(this.inputSize.width)]),
-        [1, 2]
-      )
-    }
+    const inputName = this.session.inputNames[0]
+    const output = await this.session.run({ [inputName]: tensor })
 
-    const output = await this.session.run(inputs)
-
-    if (onProgress) onProgress(0.8)
-    const { lines, blocks } = this.postprocessOutput(output, metadata)
+    if (onProgress) onProgress(0.7)
+    const lines = this.postprocessOutput(output, metadata)
 
     if (onProgress) onProgress(1.0)
-    console.log(`[LayoutDetector] ${lines.length} line regions, ${blocks.length} text blocks detected`)
-    return { lines, blocks }
+    console.log(`[LayoutDetector] ${lines.length} text regions detected`)
+    return { lines, blocks: [] }
   }
 
-  private async preprocessImage(imageData: ImageData): Promise<PreprocessResult> {
-    return new Promise((resolve, reject) => {
-      try {
-        const originalSize = { width: imageData.width, height: imageData.height }
-        const maxWH = Math.max(originalSize.width, originalSize.height)
+  private preprocessImage(imageData: ImageData): PreprocessResult {
+    const { width: origW, height: origH } = imageData
 
-        // 元画像をOffscreenCanvasに描画
-        const imageCanvas = new OffscreenCanvas(imageData.width, imageData.height)
-        const imageCtx = imageCanvas.getContext('2d')!
-        imageCtx.putImageData(imageData, 0, 0)
+    // limit_side_len リサイズ: 長辺をLIMIT_SIDE_LENに制限し、32の倍数にパディング
+    let resizeW = origW
+    let resizeH = origH
 
-        // 正方形パディング付きでモデル入力サイズに直接リサイズ（中間大キャンバス不要）
-        // paddingCanvas(maxWH×maxWH) → finalCanvas(800×800) の2ステップを1ステップに統合
-        const scale = this.inputSize.width / maxWH
-        const canvas = new OffscreenCanvas(this.inputSize.width, this.inputSize.height)
-        const ctx = canvas.getContext('2d')!
-        ctx.fillStyle = 'rgb(0, 0, 0)'
-        ctx.fillRect(0, 0, this.inputSize.width, this.inputSize.height)
-        ctx.drawImage(
-          imageCanvas, 0, 0, imageData.width, imageData.height,
-          0, 0, Math.round(imageData.width * scale), Math.round(imageData.height * scale)
-        )
+    const ratio = LIMIT_SIDE_LEN / Math.max(resizeW, resizeH)
+    if (ratio < 1) {
+      resizeW = Math.round(resizeW * ratio)
+      resizeH = Math.round(resizeH * ratio)
+    }
 
-        const resizedImageData = ctx.getImageData(0, 0, this.inputSize.width, this.inputSize.height)
-        const { data } = resizedImageData
+    // 32の倍数に切り上げ
+    resizeW = Math.ceil(resizeW / 32) * 32
+    resizeH = Math.ceil(resizeH / 32) * 32
 
-        // NCHW形式 + ImageNet正規化
-        const tensorData = new Float32Array(1 * 3 * this.inputSize.height * this.inputSize.width)
-        const mean = [123.675, 116.28, 103.53]
-        const std = [58.395, 57.12, 57.375]
+    // リサイズ
+    const srcCanvas = new OffscreenCanvas(origW, origH)
+    const srcCtx = srcCanvas.getContext('2d')!
+    srcCtx.putImageData(imageData, 0, 0)
 
-        for (let h = 0; h < this.inputSize.height; h++) {
-          for (let w = 0; w < this.inputSize.width; w++) {
-            const pixelOffset = (h * this.inputSize.width + w) * 4
-            for (let c = 0; c < 3; c++) {
-              const tensorIdx =
-                c * this.inputSize.height * this.inputSize.width +
-                h * this.inputSize.width +
-                w
-              tensorData[tensorIdx] = (data[pixelOffset + c] - mean[c]) / std[c]
-            }
-          }
-        }
+    const canvas = new OffscreenCanvas(resizeW, resizeH)
+    const ctx = canvas.getContext('2d')!
+    ctx.drawImage(srcCanvas, 0, 0, origW, origH, 0, 0, resizeW, resizeH)
 
-        const inputTensor = new ort.Tensor('float32', tensorData, [
-          1,
-          3,
-          this.inputSize.height,
-          this.inputSize.width,
-        ])
+    const resized = ctx.getImageData(0, 0, resizeW, resizeH)
+    const { data } = resized
 
-        resolve({
-          tensor: inputTensor,
-          metadata: {
-            originalWidth: originalSize.width,
-            originalHeight: originalSize.height,
-            maxWH,
-            inputWidth: this.inputSize.width,
-            inputHeight: this.inputSize.height,
-          },
-        })
-      } catch (error) {
-        reject(error)
+    // NCHW形式 + ImageNet正規化 (RGB→BGR変換)
+    const tensorData = new Float32Array(3 * resizeH * resizeW)
+    const mean = [0.485, 0.456, 0.406] // RGB
+    const std = [0.229, 0.224, 0.225]   // RGB
+
+    for (let h = 0; h < resizeH; h++) {
+      for (let w = 0; w < resizeW; w++) {
+        const pixelOffset = (h * resizeW + w) * 4
+        const r = data[pixelOffset] / 255.0
+        const g = data[pixelOffset + 1] / 255.0
+        const b = data[pixelOffset + 2] / 255.0
+
+        // RGB順序（PaddleOCRモデルの入力はRGB）
+        tensorData[0 * resizeH * resizeW + h * resizeW + w] = (r - mean[0]) / std[0]
+        tensorData[1 * resizeH * resizeW + h * resizeW + w] = (g - mean[1]) / std[1]
+        tensorData[2 * resizeH * resizeW + h * resizeW + w] = (b - mean[2]) / std[2]
       }
-    })
+    }
+
+    const tensor = new ort.Tensor('float32', tensorData, [1, 3, resizeH, resizeW])
+
+    return {
+      tensor,
+      metadata: {
+        originalWidth: origW,
+        originalHeight: origH,
+        resizedWidth: resizeW,
+        resizedHeight: resizeH,
+        ratioW: origW / resizeW,
+        ratioH: origH / resizeH,
+      },
+    }
   }
 
   private postprocessOutput(
     output: Record<string, OrtType.Tensor>,
     metadata: PreprocessResult['metadata']
-  ): { lines: TextRegion[], blocks: PageBlock[] } {
-    const lineDetections: TextRegion[] = []
-    const blockDetections: PageBlock[] = []
+  ): TextRegion[] {
+    const outputName = this.session!.outputNames[0]
+    const probMap = output[outputName].data as Float32Array
+    const dims = output[outputName].dims
+    const mapH = dims[2] as number
+    const mapW = dims[3] as number
 
-    try {
-      const outputNames = this.session!.outputNames
+    // 1. 二値化
+    const binaryMap = new Uint8Array(mapH * mapW)
+    for (let i = 0; i < probMap.length; i++) {
+      binaryMap[i] = probMap[i] > BINARY_THRESH ? 1 : 0
+    }
 
-      // DEIMモデルは4出力: class_ids, bboxes, scores, char_counts
-      const classIdsRaw = output[outputNames[0]].data
-      const bboxesData = output[outputNames[1]].data as Float32Array
-      const scoresData = output[outputNames[2]].data as Float32Array
-      const charCountsData = outputNames.length > 3
-        ? (output[outputNames[3]].data as Float32Array)
-        : null
+    // 2. 連結成分抽出
+    const contours = this.findContours(binaryMap, mapW, mapH)
 
-      const numDetections = scoresData.length
+    // 3. 各連結成分にminAreaRect + フィルタリング + unclip
+    const regions: TextRegion[] = []
 
-      // deim.py と同じスケール計算:
-      // bboxes は [0, inputSize] 範囲 → [0, maxWH] に変換
-      const scaleX = metadata.maxWH / this.inputSize.width
-      const scaleY = metadata.maxWH / this.inputSize.height
+    for (const contour of contours) {
+      if (contour.length < 4) continue
 
-      const confThreshold = 0.3
+      // 確率マップ上の平均スコアを計算
+      const score = this.calcBoxScore(probMap, contour, mapW)
+      if (score < BOX_THRESH) continue
 
-      for (let i = 0; i < numDetections; i++) {
-        const score = scoresData[i]
-        if (score < confThreshold) continue
+      // 輪郭のバウンディングボックス
+      const rect = this.minBoundingRect(contour)
+      if (rect.width < MIN_BOX_SIZE || rect.height < MIN_BOX_SIZE) continue
 
-        // class_ids は 1-indexed → 0-indexed に変換
-        const classId = Number(classIdsRaw[i]) - 1
+      // unclip: ボックスを拡張
+      const expanded = this.unclip(rect, UNCLIP_RATIO)
 
-        const x1 = bboxesData[i * 4 + 0] * scaleX
-        const y1 = bboxesData[i * 4 + 1] * scaleY
-        const x2 = bboxesData[i * 4 + 2] * scaleX
-        const y2 = bboxesData[i * 4 + 3] * scaleY
+      // 元画像座標に変換
+      const x = Math.max(0, Math.round(expanded.x * metadata.ratioW))
+      const y = Math.max(0, Math.round(expanded.y * metadata.ratioH))
+      const w = Math.min(
+        metadata.originalWidth - x,
+        Math.round(expanded.width * metadata.ratioW)
+      )
+      const h = Math.min(
+        metadata.originalHeight - y,
+        Math.round(expanded.height * metadata.ratioH)
+      )
 
-        if (classId === BLOCK_CLASS_ID) {
-          // text_block: 段・カラム境界として収集（高さ拡張なし）
-          const finalX1 = Math.max(0, Math.round(x1))
-          const finalY1 = Math.max(0, Math.round(y1))
-          const finalX2 = Math.min(metadata.originalWidth, Math.round(x2))
-          const finalY2 = Math.min(metadata.originalHeight, Math.round(y2))
-          const width = finalX2 - finalX1
-          const height = finalY2 - finalY1
-          if (width >= 10 && height >= 10) {
-            blockDetections.push({ x: finalX1, y: finalY1, width, height })
-          }
-        } else if (LINE_CLASS_IDS.has(classId)) {
-          // ライン: バウンディングボックスを上下2%拡張
-          const boxHeight = y2 - y1
-          const deltaH = boxHeight * 0.02
-          const finalX1 = Math.max(0, Math.round(x1))
-          const finalY1 = Math.max(0, Math.round(y1 - deltaH))
-          const finalX2 = Math.min(metadata.originalWidth, Math.round(x2))
-          const finalY2 = Math.min(metadata.originalHeight, Math.round(y2 + deltaH))
-          const width = finalX2 - finalX1
-          const height = finalY2 - finalY1
-          if (width >= 10 && height >= 10) {
-            const charCountCategory = charCountsData ? charCountsData[i] : 100
-            lineDetections.push({ x: finalX1, y: finalY1, width, height, confidence: score, classId, charCountCategory })
+      if (w >= 5 && h >= 5) {
+        regions.push({ x, y, width: w, height: h, confidence: score })
+      }
+    }
+
+    return regions
+  }
+
+  /**
+   * 簡易findContours: 連結成分ラベリング→各成分の輪郭点抽出
+   */
+  private findContours(binary: Uint8Array, width: number, height: number): Array<Array<[number, number]>> {
+    const labels = new Int32Array(width * height)
+    let nextLabel = 1
+    const equivalences = new Map<number, number>()
+
+    const find = (x: number): number => {
+      while (equivalences.has(x)) x = equivalences.get(x)!
+      return x
+    }
+    const union = (a: number, b: number) => {
+      const ra = find(a)
+      const rb = find(b)
+      if (ra !== rb) equivalences.set(Math.max(ra, rb), Math.min(ra, rb))
+    }
+
+    // First pass: ラベル割り当て
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = y * width + x
+        if (binary[idx] === 0) continue
+
+        const neighbors: number[] = []
+        if (y > 0 && labels[(y - 1) * width + x] > 0) neighbors.push(labels[(y - 1) * width + x])
+        if (x > 0 && labels[y * width + (x - 1)] > 0) neighbors.push(labels[y * width + (x - 1)])
+        if (y > 0 && x > 0 && labels[(y - 1) * width + (x - 1)] > 0) neighbors.push(labels[(y - 1) * width + (x - 1)])
+        if (y > 0 && x < width - 1 && labels[(y - 1) * width + (x + 1)] > 0) neighbors.push(labels[(y - 1) * width + (x + 1)])
+
+        if (neighbors.length === 0) {
+          labels[idx] = nextLabel++
+        } else {
+          const minLabel = Math.min(...neighbors)
+          labels[idx] = minLabel
+          for (const n of neighbors) {
+            if (n !== minLabel) union(n, minLabel)
           }
         }
       }
-
-      return { lines: this.nms(lineDetections), blocks: blockDetections }
-    } catch (error) {
-      console.error('Error in postprocessing:', error)
-      return { lines: [], blocks: [] }
     }
+
+    // Second pass: ラベル統一 & コンポーネント収集
+    const components = new Map<number, { minX: number; minY: number; maxX: number; maxY: number; points: Array<[number, number]> }>()
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = y * width + x
+        if (labels[idx] === 0) continue
+        const root = find(labels[idx])
+        labels[idx] = root
+
+        if (!components.has(root)) {
+          components.set(root, { minX: x, minY: y, maxX: x, maxY: y, points: [] })
+        }
+        const comp = components.get(root)!
+        comp.minX = Math.min(comp.minX, x)
+        comp.minY = Math.min(comp.minY, y)
+        comp.maxX = Math.max(comp.maxX, x)
+        comp.maxY = Math.max(comp.maxY, y)
+        comp.points.push([x, y])
+      }
+    }
+
+    // 各成分の境界点を輪郭として返す
+    const contours: Array<Array<[number, number]>> = []
+    for (const comp of components.values()) {
+      if (comp.points.length < 10) continue
+      const boundary: Array<[number, number]> = []
+      for (const [x, y] of comp.points) {
+        const idx = y * width + x
+        const atEdge = x === 0 || x === width - 1 || y === 0 || y === height - 1
+        if (
+          atEdge ||
+          (x > 0 && binary[idx - 1] === 0) ||
+          (x < width - 1 && binary[idx + 1] === 0) ||
+          (y > 0 && binary[idx - width] === 0) ||
+          (y < height - 1 && binary[idx + width] === 0)
+        ) {
+          boundary.push([x, y])
+        }
+      }
+      if (boundary.length >= 4) {
+        contours.push(boundary)
+      }
+    }
+
+    return contours
   }
 
-  private nms(detections: TextRegion[], iouThreshold = 0.5): TextRegion[] {
-    const sorted = [...detections].sort((a, b) => b.confidence - a.confidence)
-    const keep: TextRegion[] = []
-    for (const d of sorted) {
-      if (keep.every((k) => this.iou(k, d) < iouThreshold)) keep.push(d)
+  /**
+   * 確率マップ上で輪郭内部の平均スコアを計算
+   */
+  private calcBoxScore(
+    probMap: Float32Array,
+    contour: Array<[number, number]>,
+    mapW: number
+  ): number {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    for (const [x, y] of contour) {
+      minX = Math.min(minX, x)
+      minY = Math.min(minY, y)
+      maxX = Math.max(maxX, x)
+      maxY = Math.max(maxY, y)
     }
-    return keep
+
+    let sum = 0
+    let count = 0
+    for (let y = minY; y <= maxY; y++) {
+      for (let x = minX; x <= maxX; x++) {
+        sum += probMap[y * mapW + x]
+        count++
+      }
+    }
+
+    return count > 0 ? sum / count : 0
   }
 
-  private iou(a: TextRegion, b: TextRegion): number {
-    const ax2 = a.x + a.width, ay2 = a.y + a.height
-    const bx2 = b.x + b.width, by2 = b.y + b.height
-    const ix = Math.max(0, Math.min(ax2, bx2) - Math.max(a.x, b.x))
-    const iy = Math.max(0, Math.min(ay2, by2) - Math.max(a.y, b.y))
-    const inter = ix * iy
-    if (inter === 0) return 0
-    return inter / (a.width * a.height + b.width * b.height - inter)
+  /**
+   * 輪郭点群の最小外接矩形（axis-aligned）
+   */
+  private minBoundingRect(contour: Array<[number, number]>): { x: number; y: number; width: number; height: number } {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    for (const [x, y] of contour) {
+      minX = Math.min(minX, x)
+      minY = Math.min(minY, y)
+      maxX = Math.max(maxX, x)
+      maxY = Math.max(maxY, y)
+    }
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY }
+  }
+
+  /**
+   * Unclip: Vatti clipping簡易版
+   * 面積/周長の比率でボックスを拡張
+   */
+  private unclip(
+    rect: { x: number; y: number; width: number; height: number },
+    ratio: number
+  ): { x: number; y: number; width: number; height: number } {
+    const area = rect.width * rect.height
+    const perimeter = 2 * (rect.width + rect.height)
+    const distance = area * ratio / perimeter
+
+    return {
+      x: rect.x - distance,
+      y: rect.y - distance,
+      width: rect.width + 2 * distance,
+      height: rect.height + 2 * distance,
+    }
   }
 
   dispose(): void {
