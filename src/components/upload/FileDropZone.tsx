@@ -1,14 +1,17 @@
 import { useRef, useState } from 'react'
+import type { Language } from '../../i18n'
+import { createTranslator } from '../../i18n'
 
 interface FileDropZoneProps {
   onFilesSelected: (files: File[]) => void
-  lang: 'ja' | 'en'
+  lang: Language
   disabled?: boolean
 }
 
 export function FileDropZone({ onFilesSelected, lang, disabled = false }: FileDropZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const t = createTranslator(lang)
 
   const handleFiles = (files: FileList | null) => {
     if (!files || disabled) return
@@ -37,18 +40,16 @@ export function FileDropZone({ onFilesSelected, lang, disabled = false }: FileDr
     >
       <div className="dropzone-icon">📁</div>
       <p className="dropzone-text dropzone-text-desktop">
-        {lang === 'ja'
-          ? 'ここにファイルをドラッグ＆ドロップ、またはクリックして選択'
-          : 'Drag & drop files here, or click to select'}
+        {t('upload.dropzone')}
       </p>
       <p className="dropzone-text dropzone-text-mobile">
-        {lang === 'ja' ? 'タップしてファイルを選択' : 'Tap to select files'}
+        {t('upload.tapToSelect')}
       </p>
       <p className="dropzone-formats dropzone-formats-desktop">
-        {lang === 'ja' ? '対応形式: JPG, PNG, TIFF, HEIC, PDF · Ctrl+V で貼り付け可' : 'Supported: JPG, PNG, TIFF, HEIC, PDF · Ctrl+V to paste'}
+        {t('upload.formatsWithPaste')}
       </p>
       <p className="dropzone-formats dropzone-formats-mobile">
-        {lang === 'ja' ? '対応形式: JPG, PNG, TIFF, HEIC, PDF' : 'Supported: JPG, PNG, TIFF, HEIC, PDF'}
+        {t('upload.formats')}
       </p>
       <input
         ref={inputRef}

@@ -1,13 +1,16 @@
 import { useRef } from 'react'
+import type { Language } from '../../i18n'
+import { createTranslator } from '../../i18n'
 
 interface DirectoryPickerProps {
   onFilesSelected: (files: File[]) => void
-  lang: 'ja' | 'en'
+  lang: Language
   disabled?: boolean
 }
 
 export function DirectoryPicker({ onFilesSelected, lang, disabled = false }: DirectoryPickerProps) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const t = createTranslator(lang)
 
   const handleChange = () => {
     const files = inputRef.current?.files
@@ -25,7 +28,7 @@ export function DirectoryPicker({ onFilesSelected, lang, disabled = false }: Dir
         onClick={() => !disabled && inputRef.current?.click()}
         disabled={disabled}
       >
-        📂 {lang === 'ja' ? 'フォルダを選択' : 'Select Folder'}
+        📂 {t('upload.directoryButton')}
       </button>
       <input
         ref={inputRef}
