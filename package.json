@@ -7,11 +7,13 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "generate-fixtures": "node --import tsx tests/fixtures/generate-pdfs.ts"
   },
   "dependencies": {
     "heic2any": "^0.0.4",
-    "js-yaml": "^4.1.0",
     "onnxruntime-web": "^1.20.0",
     "pdfjs-dist": "^4.9.0",
     "react": "^19.2.0",
@@ -20,7 +22,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
-    "@types/js-yaml": "^4.0.9",
+    "@napi-rs/canvas": "^0.1.97",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
@@ -30,8 +32,12 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "onnxruntime-node": "^1.24.3",
+    "pdf-lib": "^1.17.1",
+    "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vitest": "^4.1.4"
   }
 }
