@@ -1,69 +1,42 @@
+import type { Language } from '../../i18n'
+import { createTranslator } from '../../i18n'
+
 interface FooterProps {
-  lang: 'ja' | 'en'
+  lang: Language
   githubUrl?: string
 }
 
-export function Footer({ lang, githubUrl = 'https://github.com/yuta1984/ndlocrlite-web' }: FooterProps) {
+export function Footer({ lang, githubUrl = 'https://github.com/makoto-udemy/web-ocr' }: FooterProps) {
+  const t = createTranslator(lang)
+
   return (
     <footer className="footer">
       <div className="footer-privacy">
-        <span className="privacy-icon">🔒</span>
-        {lang === 'ja' ? (
-          <span>
-            このシステムは{' '}
-            <a href="https://www.npmjs.com/package/onnxruntime-web" target="_blank" rel="noopener noreferrer">
-              ONNX Web Runtime
-            </a>{' '}
-            技術を使用しており、Webブラウザで完結して動作します。選択した画像とOCR結果はあなたのPCの外部には送信されません。
-          </span>
-        ) : (
-          <span>
-            This system uses{' '}
-            <a href="https://www.npmjs.com/package/onnxruntime-web" target="_blank" rel="noopener noreferrer">
-              ONNX Web Runtime
-            </a>{' '}
-            and runs entirely in your browser. Selected images and OCR results are never sent to any external server.
-          </span>
-        )}
+        <span className="privacy-icon">{t('footer.privacyIcon')}</span>
+        <span>
+          {t('footer.privacyBefore')}
+          <a href="https://www.npmjs.com/package/onnxruntime-web" target="_blank" rel="noopener noreferrer">
+            {t('footer.onnxRuntime')}
+          </a>
+          {t('footer.privacyAfter')}
+        </span>
       </div>
       <div className="footer-attribution">
-        {lang === 'ja' ? (
-          <span className="footer-attribution-text">
-            本ツールは国立国会図書館（NDL Lab）が開発した{' '}
-            <a href="https://github.com/ndl-lab/ndlocr-lite" target="_blank" rel="noopener noreferrer">
-              NDLOCR-Lite
-            </a>{' '}
-            のWebブラウザ版です。OCRモデルはNDLOCR-Liteのものを使用しています。
-          </span>
-        ) : (
-          <span className="footer-attribution-text">
-            This tool is a web browser port of{' '}
-            <a href="https://github.com/ndl-lab/ndlocr-lite" target="_blank" rel="noopener noreferrer">
-              NDLOCR-Lite
-            </a>{' '}
-            developed by the National Diet Library of Japan (NDL Lab). OCR models are from NDLOCR-Lite.
-          </span>
-        )}
+        <span className="footer-attribution-text">
+          {t('footer.attributionBefore')}
+          <a href="https://github.com/PaddlePaddle/PaddleOCR" target="_blank" rel="noopener noreferrer">
+            {t('footer.paddleOCR')}
+          </a>
+          {t('footer.attributionAfter')}
+        </span>
       </div>
       <div className="footer-meta">
         <span className="footer-author">
-          {lang === 'ja' ? (
-            <>
-              作成者:{' '}
-              <a href="https://x.com/yuta1984" target="_blank" rel="noopener noreferrer">
-                橋本雄太
-              </a>
-              （国立歴史民俗博物館、国立国会図書館 非常勤調査員）
-            </>
-          ) : (
-            <>
-              Created by{' '}
-              <a href="https://x.com/yuta1984" target="_blank" rel="noopener noreferrer">
-                Yuta Hashimoto
-              </a>
-              {' '}(National Museum of Japanese History / NDL)
-            </>
-          )}
+          {t('footer.authorPrefix')}
+          <a href="https://x.com/yuta1984" target="_blank" rel="noopener noreferrer">
+            {t('footer.authorName')}
+          </a>
+          {t('footer.authorAffiliation')}
         </span>
         <a
           href={githubUrl}
@@ -71,7 +44,7 @@ export function Footer({ lang, githubUrl = 'https://github.com/yuta1984/ndlocrli
           rel="noopener noreferrer"
           className="footer-github"
         >
-          {lang === 'ja' ? 'GitHubリポジトリ' : 'GitHub Repository'} ↗
+          {t('footer.githubLink')} ↗
         </a>
       </div>
     </footer>
