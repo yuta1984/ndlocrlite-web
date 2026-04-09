@@ -15,11 +15,17 @@ export function useI18n() {
     [lang]
   )
 
-  const toggleLanguage = useCallback(() => {
-    const next: Language = lang === 'ja' ? 'en' : 'ja'
+  const setLanguage = useCallback((next: Language) => {
     setLang(next)
     localStorage.setItem(LANG_STORAGE_KEY, next)
-  }, [lang])
+  }, [])
 
-  return { lang, t, toggleLanguage }
+  const toggleLanguage = useCallback(() => {
+    const cycle: Language[] = ['ja', 'en', 'zh', 'ko']
+    const idx = cycle.indexOf(lang)
+    const next = cycle[(idx + 1) % cycle.length]
+    setLanguage(next)
+  }, [lang, setLanguage])
+
+  return { lang, t, toggleLanguage, setLanguage }
 }
