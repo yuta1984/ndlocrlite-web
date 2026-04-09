@@ -1,10 +1,12 @@
 import { ja } from './ja'
 import { en } from './en'
+import { zh } from './zh'
+import { ko } from './ko'
 
-export type Language = 'ja' | 'en'
+export type Language = 'ja' | 'en' | 'zh' | 'ko'
 export type TranslationParams = Record<string, string | number>
 
-const translations = { ja, en }
+const translations = { ja, en, zh, ko }
 
 function getNestedValue(obj: Record<string, unknown>, key: string): string {
   const parts = key.split('.')
@@ -32,5 +34,6 @@ export const LANG_STORAGE_KEY = 'ndlocrlite_lang'
 
 export function getStoredLang(): Language {
   const stored = localStorage.getItem(LANG_STORAGE_KEY)
-  return stored === 'en' ? 'en' : 'ja'
+  if (stored === 'en' || stored === 'zh' || stored === 'ko') return stored
+  return 'ja'
 }

@@ -2,8 +2,8 @@ import type { Translations } from './ja'
 
 export const en: Translations = {
   app: {
-    title: 'NDLOCR-Lite Web',
-    subtitle: 'Japanese OCR Tool Running in the Browser',
+    title: 'Web OCR',
+    subtitle: 'OCR Tool Running in the Browser',
   },
   upload: {
     dropzone: 'Drag & drop files here, or click to select',
@@ -11,6 +11,11 @@ export const en: Translations = {
     acceptedFormats: 'Supported formats: JPG, PNG, PDF',
     startButton: 'Start OCR',
     clearButton: 'Clear',
+    pasteClipboard: 'Paste from Clipboard',
+    trySample: 'Try Sample',
+    tapToSelect: 'Tap to select files',
+    formatsWithPaste: 'Supported: JPG, PNG, TIFF, HEIC, PDF · Ctrl+V to paste',
+    formats: 'Supported: JPG, PNG, TIFF, HEIC, PDF',
   },
   progress: {
     initializing: 'Initializing...',
@@ -22,6 +27,10 @@ export const en: Translations = {
     generatingOutput: 'Generating output...',
     processing: 'Processing: {current}/{total} files',
     done: 'Done',
+    filesCount: '{current} / {total} files',
+    downloadingModels: 'Downloading models',
+    detModel: 'Text detection model',
+    recModel: 'Recognition model',
   },
   results: {
     copy: 'Copy',
@@ -31,6 +40,12 @@ export const en: Translations = {
     noResult: 'No results',
     regions: '{count} regions',
     processingTime: 'Processing time: {time}s',
+    noTextDetected: 'No text detected',
+    blockText: 'Block text:',
+    selectedRegion: 'Selected region:',
+    includeFileName: 'Include file name',
+    ignoreNewlines: 'Ignore newlines',
+    copyFailed: 'Failed to copy',
   },
   history: {
     title: 'History',
@@ -40,6 +55,8 @@ export const en: Translations = {
     cancel: 'Cancel',
     empty: 'No processing history',
     noText: 'No text',
+    confirmDelete: 'Confirm delete?',
+    moreFiles: '{name} +{count} more',
   },
   settings: {
     title: 'Settings',
@@ -48,6 +65,10 @@ export const en: Translations = {
     confirmClearModel:
       'Delete cached ONNX models? They will be re-downloaded on next startup.',
     clearDone: 'Cleared',
+    ocrLanguage: 'OCR Recognition Language',
+    ocrLanguageDescription: 'Select the language model for text recognition. Changing this will reload the model.',
+    modelCacheDescription: 'Downloaded ONNX models are cached in IndexedDB. Clearing the cache requires re-downloading on next startup.',
+    clearing: 'Clearing...',
   },
   info: {
     privacyNotice:
@@ -58,6 +79,35 @@ export const en: Translations = {
   },
   language: {
     switchTo: '日本語',
+  },
+  nav: {
+    prevFile: 'Previous file',
+    nextFile: 'Next file',
+    startRecognition: 'Start Recognition',
+    regionSelectHint: 'Drag to select a region and run OCR on that area only',
+    processNewFiles: 'Process New Files',
+    renderingFile: 'Rendering {fileName}... (page {currentPage} / {totalPages})',
+    loadingFile: 'Loading {fileName}...',
+    modelLoadingNote: 'First run requires model download (may take a few minutes). Subsequent runs will use the cached model.',
+  },
+  region: {
+    title: 'Region OCR Result',
+    recognizing: 'Recognizing...',
+    noText: 'No text found',
+    ignoreNewlines: 'Ignore newlines',
+  },
+  footer: {
+    privacyIcon: '🔒',
+    privacyBefore: 'This system uses ',
+    onnxRuntime: 'ONNX Web Runtime',
+    privacyAfter: ' and runs entirely in your browser. Selected images and OCR results are never sent to any external server.',
+    attributionBefore: 'This tool is a web browser port of ',
+    paddleOCR: 'PaddleOCR',
+    attributionAfter: '. It uses the PP-OCRv5 models for text detection and recognition.',
+    authorPrefix: 'Created by ',
+    authorName: 'Yuta Hashimoto',
+    authorAffiliation: ' (National Museum of Japanese History / NDL)',
+    githubLink: 'GitHub Repository',
   },
   error: {
     generic: 'An error occurred',

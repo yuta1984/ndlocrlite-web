@@ -1,8 +1,8 @@
 // as const を使わずに string型にすることでen.tsとの互換性を持たせる
 export const ja: Record<string, Record<string, string>> = {
   app: {
-    title: 'NDLOCR-Lite Web',
-    subtitle: 'ブラウザで動く日本語OCRツール',
+    title: 'Web OCR',
+    subtitle: 'ブラウザで動くOCRツール',
   },
   upload: {
     dropzone: 'ここにファイルをドラッグ＆ドロップ、またはクリックして選択',
@@ -10,6 +10,11 @@ export const ja: Record<string, Record<string, string>> = {
     acceptedFormats: '対応形式: JPG, PNG, PDF',
     startButton: 'OCR開始',
     clearButton: 'クリア',
+    pasteClipboard: 'クリップボードから貼り付け',
+    trySample: 'サンプルを試す',
+    tapToSelect: 'タップしてファイルを選択',
+    formatsWithPaste: '対応形式: JPG, PNG, TIFF, HEIC, PDF · Ctrl+V で貼り付け可',
+    formats: '対応形式: JPG, PNG, TIFF, HEIC, PDF',
   },
   progress: {
     initializing: '初期化中...',
@@ -21,6 +26,10 @@ export const ja: Record<string, Record<string, string>> = {
     generatingOutput: '出力生成中...',
     processing: '処理中: {current}/{total} ファイル',
     done: '完了',
+    filesCount: '{current} / {total} ファイル',
+    downloadingModels: 'モデルをダウンロード中',
+    detModel: 'テキスト検出モデル',
+    recModel: '文字認識モデル',
   },
   results: {
     copy: 'コピー',
@@ -30,6 +39,12 @@ export const ja: Record<string, Record<string, string>> = {
     noResult: '結果なし',
     regions: '{count} 領域',
     processingTime: '処理時間: {time}秒',
+    noTextDetected: 'テキストが検出されませんでした',
+    blockText: 'ブロック内のテキスト:',
+    selectedRegion: '選択領域のテキスト:',
+    includeFileName: 'ファイル名を記載する',
+    ignoreNewlines: '改行を無視する',
+    copyFailed: 'コピーに失敗しました',
   },
   history: {
     title: '処理履歴',
@@ -39,6 +54,8 @@ export const ja: Record<string, Record<string, string>> = {
     cancel: 'キャンセル',
     empty: '処理履歴がありません',
     noText: 'テキストなし',
+    confirmDelete: '本当に削除しますか？',
+    moreFiles: '{name} 他{count}件',
   },
   settings: {
     title: '設定',
@@ -46,6 +63,10 @@ export const ja: Record<string, Record<string, string>> = {
     clearModelCache: 'モデルキャッシュをクリア',
     confirmClearModel: 'キャッシュされたONNXモデルを削除しますか？次回起動時に再ダウンロードが必要です。',
     clearDone: 'クリアしました',
+    ocrLanguage: 'OCR認識言語',
+    ocrLanguageDescription: '文字認識に使用する言語モデルを選択してください。変更するとモデルが再読み込みされます。',
+    modelCacheDescription: 'ダウンロード済みのONNXモデルはIndexedDBにキャッシュされています。キャッシュをクリアすると次回起動時に再ダウンロードが必要です。',
+    clearing: 'クリア中...',
   },
   info: {
     privacyNotice:
@@ -56,6 +77,35 @@ export const ja: Record<string, Record<string, string>> = {
   },
   language: {
     switchTo: 'English',
+  },
+  nav: {
+    prevFile: '前のファイル',
+    nextFile: '次のファイル',
+    startRecognition: '認識を開始',
+    regionSelectHint: 'マウスで領域をドラッグすると、その領域のみOCRをおこないます',
+    processNewFiles: '新しいファイルを処理',
+    renderingFile: '{fileName} をレンダリング中... ({currentPage} / {totalPages} ページ)',
+    loadingFile: '{fileName} を読み込み中...',
+    modelLoadingNote: '初回起動時はモデルのダウンロードに時間がかかります（数分程度）。次回以降はキャッシュから高速起動します。',
+  },
+  region: {
+    title: '選択領域の OCR 結果',
+    recognizing: '認識中...',
+    noText: 'テキストが見つかりませんでした',
+    ignoreNewlines: '改行を無視する',
+  },
+  footer: {
+    privacyIcon: '🔒',
+    privacyBefore: 'このシステムは ',
+    onnxRuntime: 'ONNX Web Runtime',
+    privacyAfter: ' 技術を使用しており、Webブラウザで完結して動作します。選択した画像とOCR結果はあなたのPCの外部には送信されません。',
+    attributionBefore: '本ツールは',
+    paddleOCR: 'PaddleOCR',
+    attributionAfter: 'のWebブラウザ版です。OCRモデルPP-OCRv5を使用しています。',
+    authorPrefix: '作成者: ',
+    authorName: '橋本雄太',
+    authorAffiliation: '（国立歴史民俗博物館、国立国会図書館 非常勤調査員）',
+    githubLink: 'GitHubリポジトリ',
   },
   error: {
     generic: 'エラーが発生しました',
