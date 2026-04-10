@@ -1,58 +1,46 @@
-# NDLOCR-Lite Web
+# Web OCR
 
-**ブラウザで動く日本語OCRツール**
+**ブラウザで動く多言語OCRツール**
 
-本ツールは、国立国会図書館（NDL）が開発・公開している **[NDLOCR-Lite](https://github.com/ndl-lab/ndlocr-lite)**（NDL Lab）を元にして、WebブラウザのみでOCR処理が完結するよう移植・再実装したものです。OCRモデル（DEIMv2・PARSeq）はすべて NDLOCR-Lite のものをそのまま利用しており、本ツールはそのWebフロントエンドとして機能します。
-
-**サイト**: https://ndlocr-liteweb.netlify.app/
-**元リポジトリ**: https://github.com/ndl-lab/ndlocr-lite（国立国会図書館）
+[PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) の PP-OCRv5 モデル（テキスト検出 DB + 文字認識 SVTR）を ONNX Runtime Web で動作させ、Webブラウザのみで OCR 処理が完結するツールです。画像や OCR 結果は外部に送信されません。
 
 ## 特徴
 
 - **ブラウザ完結** — 画像・OCR結果を外部サーバーに送信しません。すべての処理がブラウザ内で完結します。
-- **高精度レイアウト認識** — DEIMv2 モデルによりテキスト行の矩形領域を自動検出します。
-- **カスケード文字認識** — 行の文字数に応じて3種類の PARSeq モデルを使い分け、精度を最適化します。
+- **多言語対応** — 中国語/日本語、英語、韓国語、ラテン文字の OCR に対応。設定画面から切り替え可能です。
+- **4言語 UI** — 日本語・英語・中文・한국어のUI表示に対応しています。
 - **PDF対応** — 複数ページのPDFを一括処理できます。
 - **バッチ処理** — 複数の画像ファイルやフォルダをまとめて処理できます。
 - **結果のキャッシュ** — IndexedDB にモデルと処理結果（最新100件）を保存し、再利用できます。
 - **領域選択** — マウスドラッグで任意の矩形領域を選択し、テキストを確認できます。
-- **日英対応** — 日本語・英語のUI切替ができます。
+- **クリップボード貼り付け** — Ctrl+V で画像を直接読み込めます。
 
 ## 使い方
 
-1. **https://ndlocr-liteweb.netlify.app/** をブラウザで開く
-2. 初回起動時にONNXモデル（計約146MB）を自動ダウンロード・IndexedDBにキャッシュ
-3. 画像（JPG/PNG）またはPDFをドラッグ&ドロップするか、クリックして選択
+1. ブラウザでサイトを開く
+2. 初回起動時に ONNX モデルを自動ダウンロード・IndexedDB にキャッシュ
+3. 画像（JPG/PNG/TIFF/HEIC）またはPDFをドラッグ&ドロップするか、クリックして選択
 4. OCR処理が完了するとテキストが表示される
 5. 「コピー」「ダウンロード」ボタンでテキストを出力
 
-### 対応ファイル形式
-
-| 形式 | 説明 |
-|------|------|
-| JPEG/PNG | 一般的な画像ファイル |
-| PDF | 複数ページ対応（各ページを 2倍スケールでレンダリング） |
-
 ## 技術情報
 
-### 使用モデル（ndlocr-lite より）
+### 使用モデル（PaddleOCR PP-OCRv5）
 
-| モデル | ファイル | サイズ | 用途 |
-|--------|---------|--------|------|
-| DEIMv2 | `deim-s-1024x1024.onnx` | 38MB | レイアウト検出（テキスト行の矩形認識） |
-| PARSeq-30 | `parseq-ndl-30.onnx` | 34MB | 文字認識（≤30文字行、入力サイズ 16×256） |
-| PARSeq-50 | `parseq-ndl-50.onnx` | 35MB | 文字認識（≤50文字行、入力サイズ 16×384） |
-| PARSeq-100 | `parseq-ndl-100.onnx` | 39MB | 文字認識（≤100文字行、入力サイズ 16×768） |
-
-DEIMv2 は行ごとに文字数カテゴリ（1/2/3）を予測し、それに応じて最適な PARSeq モデルを選択するカスケード方式で処理します。
+| モデル | 用途 | 配信元 |
+|--------|------|--------|
+| DB テキスト検出 | テキスト行の矩形検出 | HuggingFace (monkt/paddleocr-onnx) |
+| SVTR 文字認識（中国語/日本語） | CJK 文字認識 | HuggingFace (monkt/paddleocr-onnx) |
+| SVTR 文字認識（英語） | 英語文字認識 | HuggingFace (monkt/paddleocr-onnx) |
+| SVTR 文字認識（韓国語） | 韓国語文字認識 | HuggingFace (monkt/paddleocr-onnx) |
 
 ### 技術スタック
 
 | 要素 | 技術 |
 |------|------|
 | フレームワーク | Vite + React 19 + TypeScript |
-| OCRランタイム | onnxruntime-web 1.20.0（WASM CPU バックエンド） |
-| PDF処理 | pdfjs-dist 4.9.0 |
+| OCRランタイム | onnxruntime-web（WASM CPU バックエンド） |
+| PDF処理 | pdfjs-dist |
 | OCR処理 | Web Worker（UIをブロックしない非同期処理） |
 | モデルキャッシュ | IndexedDB |
 | デプロイ | Netlify（COOP/COEP ヘッダー対応） |
@@ -60,16 +48,14 @@ DEIMv2 は行ごとに文字数カテゴリ（1/2/3）を予測し、それに�
 ### OCR処理フロー
 
 ```
-入力ファイル（JPG/PNG/PDF）
+入力ファイル（JPG/PNG/TIFF/HEIC/PDF）
   ↓ imageLoader / pdfLoader → ImageData
   ↓ Web Worker
-  1. DEIMv2レイアウト検出
-     → テキスト行の矩形 + 文字数カテゴリ を取得
-  2. カスケード文字認識（PARSeq × 3モデル）
-     → charCountCategory=3 → PARSeq-30
-     → charCountCategory=2 → PARSeq-50
-     → その他          → PARSeq-100
-  3. 読み順ソート（縦書き右→左）
+  1. DB テキスト検出（limit_side_len=960, ImageNet正規化）
+     → テキスト行の矩形領域を取得
+  2. SVTR 文字認識（高さ48px固定, PaddleOCR正規化 mean=0.5/std=0.5）
+     → CTC Greedy Decode → テキスト出力
+  3. 読み順ソート（XY-Cut アルゴリズム）
   ↓ メインスレッド
   結果表示 + IndexedDB保存
 ```
@@ -80,12 +66,6 @@ DEIMv2 は行ごとに文字数カテゴリ（1/2/3）を予測し、それに�
 # 依存関係インストール
 npm install
 
-# モデルファイルを配置（ndlocr-lite から取得）
-cp /path/to/ndlocr-lite/src/model/deim-s-1024x1024.onnx        public/models/
-cp /path/to/ndlocr-lite/src/model/parseq-ndl-16x256-30-*.onnx  public/models/parseq-ndl-30.onnx
-cp /path/to/ndlocr-lite/src/model/parseq-ndl-16x384-50-*.onnx  public/models/parseq-ndl-50.onnx
-cp /path/to/ndlocr-lite/src/model/parseq-ndl-16x768-100-*.onnx public/models/parseq-ndl-100.onnx
-
 # 開発サーバー起動
 npm run dev
 
@@ -93,25 +73,19 @@ npm run dev
 npm run build
 ```
 
-> **Note**: COOP/COEP ヘッダーが必要なため、`npm run dev` で起動した開発サーバー（`localhost:5173`）で動作確認してください。単純なファイル開き（`file://`）では動作しません。
+> **Note**: COOP/COEP ヘッダーが必要なため、`npm run dev` で起動した開発サーバーで動作確認してください。
 
 ## 注意事項
 
-- 初回起動時に約 **146MB** のONNXモデルをダウンロードします（2回目以降はキャッシュから読み込み）
-- 処理時間はハードウェア性能に依存します（GPU加速なしのCPU推論のため、1枚あたり数十秒かかる場合があります）
+- 初回起動時に ONNX モデルをダウンロードします（2回目以降はキャッシュから読み込み）
+- 処理時間はハードウェア性能に依存します（CPU推論のため、1枚あたり数十秒かかる場合があります）
 - 対応ブラウザ: WebAssembly・IndexedDB・Web Worker に対応した最新ブラウザ（Chrome/Firefox/Safari/Edge 推奨）
 
-## 帰属・クレジット
+## クレジット
 
-本ツールは **[NDLOCR-Lite](https://github.com/ndl-lab/ndlocr-lite)**（国立国会図書館 NDL Lab）の派生物です。OCRモデル（重みファイル）・文字セット・推論アルゴリズムはすべて NDLOCR-Lite に帰属します。
-
-- **NDLOCR-Lite**: [ndl-lab/ndlocr-lite](https://github.com/ndl-lab/ndlocr-lite)（国立国会図書館）
-- DEIMv2: [ShihuaHuang95/DEIM](https://github.com/ShihuaHuang95/DEIM)
-- PARSeq: [baudm/parseq](https://github.com/baudm/parseq)
-- 文字セット（NDLmoji.yaml）: 国立国会図書館
+- **PaddleOCR**: [PaddlePaddle/PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR)（百度）
+- **ONNX モデル配信**: [monkt/paddleocr-onnx](https://huggingface.co/monkt/paddleocr-onnx)（HuggingFace）
 
 ## 作成者
 
 橋本雄太（国立歴史民俗博物館 / 国立国会図書館 非常勤調査員）
-
-- GitHub: [yuta1984/ndlocrlite-web](https://github.com/yuta1984/ndlocrlite-web)
