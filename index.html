@@ -7,12 +7,20 @@
     <meta name="description" content="NDL OCR Lite Web - ブラウザで動く日本語OCRツール" />
     <title>NDLOCR-Lite Web</title>
     <!-- Google Analytics (GA4) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-N5GPX8YPFL"></script>
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-N5GPX8YPFL');
+      (function() {
+        var id = '%VITE_GA_MEASUREMENT_ID%';
+        if (!id || id.indexOf('VITE_GA') === 0) return;
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + id;
+        document.head.appendChild(s);
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        window.gtag = gtag;
+        gtag('js', new Date());
+        gtag('config', id);
+      })();
     </script>
   </head>
   <body>

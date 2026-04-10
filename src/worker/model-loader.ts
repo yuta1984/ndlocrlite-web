@@ -22,6 +22,33 @@ export const MODEL_URLS: Record<string, string> = {
   rec_latin: `${HF_BASE}/languages/latin/rec.onnx`,
 }
 
+// 各モデルの SHA-256 ハッシュ（整合性検証用）
+const MODEL_HASHES: Record<string, string> = {
+  det: '61824840edf6e74581898930b8091b1b2318f4b2705a2e8a40ad3de7ac480133',
+  rec_chinese: '26fa4f47060f58e25962b9af6beaee05c8182b90e026c4ecc6db165d9dfdc38a',
+  rec_english: '4e16deb22c4da6468bdca539b2cd3c8687825538b67109177c47d359ab994cd7',
+  rec_korean: '322f140154c820fcb83c3d24cfe42c9ec70dd1a1834163306a7338136e4f1eaa',
+  rec_latin: '614ffc2d6d3902d360fad7f1b0dd455ee45e877069d14c4e51a99dc4ef144409',
+}
+
+async function verifyModelIntegrity(
+  modelType: string,
+  data: ArrayBuffer
+): Promise<void> {
+  const expectedHash = MODEL_HASHES[modelType]
+  if (!expectedHash) return
+
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+
+  if (hashHex !== expectedHash) {
+    throw new Error(
+      `Model integrity check failed for ${modelType}: expected ${expectedHash}, got ${hashHex}`
+    )
+  }
+}
+
 // 言語→認識モデルキーのマッピング
 export function getRecModelKey(language: string): string {
   return `rec_${language}`
@@ -100,12 +127,6 @@ async function downloadWithProgress(
     throw new Error(`HTTP error! status: ${response.status}`)
   }
 
-  // SPAフォールバックでHTMLが返った場合（モデルファイルが存在しない）を検出
-  const contentType = response.headers.get('content-type') ?? ''
-  if (contentType.includes('text/html')) {
-    throw new Error(`Model file not found (HTML returned): ${url}`)
-  }
-
   const contentLength = parseInt(
     response.headers.get('content-length') || '0',
     10
@@ -155,6 +176,8 @@ export async function loadModel(
 
   console.log(`Downloading model ${modelType} from ${modelUrl}`)
   const modelData = await downloadWithProgress(modelUrl, onProgress)
+
+  await verifyModelIntegrity(modelType, modelData)
 
   await saveModelToCache(modelType, modelData)
   console.log(`Model ${modelType} cached successfully`)

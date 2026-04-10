@@ -1,0 +1,22 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [main, feature/*]
+    paths: ['package-lock.json', 'package.json']
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 9 * * 1' # 毎週月曜 9:00 UTC
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: npm audit
+        run: npm audit --audit-level=high
