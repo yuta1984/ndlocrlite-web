@@ -9,13 +9,13 @@ export interface FileLoadingState {
   totalPages: number | null
 }
 
+/** ファイル（画像 / PDF / TIFF / HEIC）を読み込んで ProcessedImage の配列にする */
 export function useFileProcessor() {
-  const [processedImages, setProcessedImages] = useState<ProcessedImage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fileLoadingState, setFileLoadingState] = useState<FileLoadingState | null>(null)
 
-  const processFiles = useCallback(async (files: File[]) => {
+  const processFiles = useCallback(async (files: File[]): Promise<ProcessedImage[]> => {
     setIsLoading(true)
     setError(null)
 
@@ -39,19 +39,14 @@ export function useFileProcessor() {
           images.push(img)
         }
       }
-      setProcessedImages(images)
     } catch (err) {
       setError((err as Error).message)
     } finally {
       setIsLoading(false)
       setFileLoadingState(null)
     }
+    return images
   }, [])
 
-  const clearImages = useCallback(() => {
-    setProcessedImages([])
-    setError(null)
-  }, [])
-
-  return { processedImages, isLoading, error, processFiles, clearImages, fileLoadingState }
+  return { isLoading, error, processFiles, fileLoadingState }
 }

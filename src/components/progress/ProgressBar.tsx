@@ -12,6 +12,7 @@ const MODEL_LABELS = {
     rec50: '文字認識モデル（≤50文字）',
     rec100: '文字認識モデル（≤100文字）',
     downloading: 'モデルをダウンロード中',
+    preparing: 'モデルを準備中',
   },
   en: {
     layout: 'Layout detection model',
@@ -19,6 +20,7 @@ const MODEL_LABELS = {
     rec50: 'Recognition model (≤50 chars)',
     rec100: 'Recognition model (≤100 chars)',
     downloading: 'Downloading models',
+    preparing: 'Preparing models',
   },
 }
 
@@ -35,7 +37,9 @@ export function ProgressBar({ jobState, lang }: ProgressBarProps) {
   if (isDownloading) {
     return (
       <div className="progress-container">
-        <div className="progress-title">{labels.downloading}...</div>
+        <div className="progress-title">
+          {Object.values(modelProgress).every((p) => p >= 1) ? labels.preparing : labels.downloading}...
+        </div>
         <div className="model-download-bars">
           {(
             [

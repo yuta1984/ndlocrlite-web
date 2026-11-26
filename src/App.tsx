@@ -1,27 +1,31 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import type { OCRResult, TextBlock, BoundingBox, PageBlock } from './types/ocr'
+import type { TextBlock, BoundingBox, PageBlock, OCRResult } from './types/ocr'
 import type { DBRunEntry } from './types/db'
 import { useI18n } from './hooks/useI18n'
 import { useOCRWorker } from './hooks/useOCRWorker'
 import { useFileProcessor } from './hooks/useFileProcessor'
 import { useResultCache } from './hooks/useResultCache'
+import { useDocuments } from './hooks/useDocuments'
+import { useResultPanelWidth } from './hooks/useResultPanelWidth'
+import { useTextTransform } from './hooks/useTextTransform'
+import { selectedDocument, completedResults } from './state/documents'
 import { Header } from './components/layout/Header'
-import { Footer } from './components/layout/Footer'
-import { FileDropZone } from './components/upload/FileDropZone'
-import { DirectoryPicker } from './components/upload/DirectoryPicker'
-import { ProgressBar } from './components/progress/ProgressBar'
-import { ImageViewer } from './components/viewer/ImageViewer'
-import { ResultPanel } from './components/results/ResultPanel'
-import { ResultActions } from './components/results/ResultActions'
+import { AboutModal } from './components/layout/AboutModal'
+import { ResizeHandle } from './components/layout/ResizeHandle'
+import { Sidebar, type SampleDef } from './components/sidebar/Sidebar'
+import { ImagePane } from './components/workspace/ImagePane'
+import { TextPane } from './components/workspace/TextPane'
 import { HistoryPanel } from './components/results/HistoryPanel'
 import { SettingsModal } from './components/settings/SettingsModal'
-import { ResizeHandle } from './components/layout/ResizeHandle'
-import { useResultPanelWidth } from './hooks/useResultPanelWidth'
 import { RegionOCRDialog } from './components/viewer/RegionOCRDialog'
 import { imageDataToDataUrl } from './utils/imageLoader'
+import { filterAcceptedFiles } from './utils/file-accept'
+import { buildExport } from './utils/export-builder'
+import { downloadFile } from './utils/textExport'
+import { getSettings } from './utils/settings'
 import './App.css'
 
-const SAMPLES = [
+const SAMPLES: SampleDef[] = [
   {
     url: '/kumonoito.png',
     fileName: 'kumonoito.png',
@@ -38,6 +42,8 @@ const SAMPLES = [
     },
   },
 ]
+
+type MobileTab = 'image' | 'text'
 
 function cropRegion(srcDataUrl: string, bbox: BoundingBox) {
   return new Promise<{ previewDataUrl: string; imageData: ImageData }>((resolve) => {
@@ -61,46 +67,51 @@ function cropRegion(srcDataUrl: string, bbox: BoundingBox) {
 
 export default function App() {
   const { lang, toggleLanguage } = useI18n()
-  const { isReady, backend, recWorkerCount, jobState, processImage, processRegion, resetState } = useOCRWorker()
-  const { processedImages, isLoading: isLoadingFiles, processFiles, clearImages, fileLoadingState } = useFileProcessor()
+  const { isReady, backend, recWorkerCount, jobState, processImage, processRegion } = useOCRWorker()
+  const { isLoading: isLoadingFiles, processFiles, fileLoadingState } = useFileProcessor()
   const { runs: historyRuns, saveRun, clearResults } = useResultCache()
-
+  const documents = useDocuments(processImage, saveRun)
+  const { state: docState, isRecognizing } = documents
   const [resultPanelWidth, setResultPanelWidth] = useResultPanelWidth()
-  const [sessionResults, setSessionResults] = useState<OCRResult[]>([])
-  const [selectedResultIndex, setSelectedResultIndex] = useState(0)
+  const transform = useTextTransform()
+
   const [selectedBlock, setSelectedBlock] = useState<TextBlock | null>(null)
   const [selectedPageBlock, setSelectedPageBlock] = useState<PageBlock | null>(null)
   const [showHistory, setShowHistory] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [isReadyToProcess, setIsReadyToProcess] = useState(false)
-  const [pendingImageIndex, setPendingImageIndex] = useState(0)
-
-  // pending 状態での ImageViewer 表示用（全解像度 DataUrl）
-  const pendingDataUrls = useMemo(
-    () => processedImages.map((img) => imageDataToDataUrl(img.imageData)),
-    [processedImages]
-  )
-
-  // processedImages が差し替わったらインデックスをリセット（レンダー中に前回値と比較）
-  const [prevProcessedImages, setPrevProcessedImages] = useState(processedImages)
-  if (prevProcessedImages !== processedImages) {
-    setPrevProcessedImages(processedImages)
-    setPendingImageIndex(0)
-  }
+  const [showAbout, setShowAbout] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [mobileTab, setMobileTab] = useState<MobileTab>('image')
   const [regionOCRDialog, setRegionOCRDialog] = useState<{
     cropDataUrl: string
     isProcessing: boolean
     result: { textBlocks: TextBlock[]; fullText: string } | null
   } | null>(null)
 
-  const currentResult = sessionResults[selectedResultIndex] ?? null
+  const currentDoc = selectedDocument(docState)
+  const busy = isLoadingFiles || isRecognizing
+
+  // 選択が変わったら行・ブロックの選択を解除（レンダー中に前回値と比較）
+  const [prevSelectedId, setPrevSelectedId] = useState(docState.selectedId)
+  if (prevSelectedId !== docState.selectedId) {
+    setPrevSelectedId(docState.selectedId)
+    setSelectedBlock(null)
+    setSelectedPageBlock(null)
+  }
+
+  // ビューアに表示する画像（元画像があればフル解像度、履歴から復元した資料はサムネイル）
+  const currentImage = currentDoc?.image ?? null
+  const currentImageDataUrl = useMemo(
+    () => (currentImage ? imageDataToDataUrl(currentImage.imageData) : currentDoc?.result?.imageDataUrl ?? ''),
+    [currentImage, currentDoc?.result?.imageDataUrl]
+  )
 
   const selectedPageBlockText = useMemo(() => {
-    if (!selectedPageBlock || !currentResult) return null
+    const result = currentDoc?.result
+    if (!selectedPageBlock || !result) return null
     const cx = (b: TextBlock) => b.x + b.width / 2
     const cy = (b: TextBlock) => b.y + b.height / 2
-    return currentResult.textBlocks
+    return result.textBlocks
       .filter(b =>
         cx(b) >= selectedPageBlock.x && cx(b) <= selectedPageBlock.x + selectedPageBlock.width &&
         cy(b) >= selectedPageBlock.y && cy(b) <= selectedPageBlock.y + selectedPageBlock.height
@@ -108,38 +119,20 @@ export default function App() {
       .sort((a, b) => a.readingOrder - b.readingOrder)
       .map(b => b.text)
       .join('\n')
-  }, [selectedPageBlock, currentResult])
+  }, [selectedPageBlock, currentDoc?.result])
 
-  const handleFilesSelected = useCallback(async (files: File[]) => {
-    await processFiles(files)
-  }, [processFiles])
+  const { addImages } = documents
+  const handleAddFiles = useCallback(async (files: File[]) => {
+    const images = await processFiles(files)
+    addImages(images)
+    setMobileTab('image')
+    setSidebarOpen(false)
+  }, [processFiles, addImages])
 
-  // Ctrl+V / Cmd+V でクリップボードの画像を貼り付け（アップロード画面表示中のみ）
-  useEffect(() => {
-    const handleGlobalPaste = (e: ClipboardEvent) => {
-      if (sessionResults.length > 0 || isLoadingFiles || isProcessing) return
-      const items = e.clipboardData?.items
-      if (!items) return
-      const files: File[] = []
-      for (const item of Array.from(items)) {
-        if (item.type.startsWith('image/')) {
-          const file = item.getAsFile()
-          if (file) files.push(file)
-        }
-      }
-      if (files.length > 0) handleFilesSelected(files)
-    }
-    document.addEventListener('paste', handleGlobalPaste)
-    return () => document.removeEventListener('paste', handleGlobalPaste)
-  }, [sessionResults.length, isLoadingFiles, isProcessing, handleFilesSelected])
-
-  // サンプル画像（1: 縦書き本文、2: 表を含むページ。出典は SAMPLES の title を参照）
-  const handleSampleLoad = useCallback(async (url: string, fileName: string, type: string) => {
-    const res = await fetch(url)
-    const blob = await res.blob()
-    const file = new File([blob], fileName, { type })
-    await processFiles([file])
-  }, [processFiles])
+  const handleSample = useCallback(async (sample: SampleDef) => {
+    const blob = await (await fetch(sample.url)).blob()
+    await handleAddFiles([new File([blob], sample.fileName, { type: sample.type })])
+  }, [handleAddFiles])
 
   const handlePasteFromClipboard = useCallback(async () => {
     try {
@@ -154,82 +147,96 @@ export default function App() {
           }
         }
       }
-      if (files.length > 0) await processFiles(files)
+      if (files.length > 0) await handleAddFiles(files)
     } catch {
       // permission denied or no image in clipboard — ignore silently
     }
-  }, [processFiles])
+  }, [handleAddFiles])
 
-  // 「認識を開始」が押されたら OCR 実行
+  // Ctrl+V / Cmd+V でクリップボードの画像を追加（入力欄にフォーカスがあるときは除く）
   useEffect(() => {
-    if (!isReadyToProcess || processedImages.length === 0 || isProcessing) return
-
-    const runOCR = async () => {
-      setIsProcessing(true)
-      setSessionResults([])
-      setSelectedResultIndex(0)
-      resetState()
-
-      const runId = crypto.randomUUID()
-      const runCreatedAt = Date.now()
-      const successItems: Array<{ result: OCRResult; thumbnailDataUrl: string }> = []
-      const sessionResultsAccum: OCRResult[] = []
-
-      for (let i = 0; i < processedImages.length; i++) {
-        const image = processedImages[i]
-        try {
-          const result = await processImage(image, i, processedImages.length, processedImages[i + 1])
-          successItems.push({ result, thumbnailDataUrl: image.thumbnailDataUrl })
-          sessionResultsAccum.push(result)
-          setSessionResults([...sessionResultsAccum])
-          setSelectedResultIndex(sessionResultsAccum.length - 1)
-        } catch (err) {
-          console.error(`OCR failed for ${image.fileName}:`, err)
+    const handleGlobalPaste = (e: ClipboardEvent) => {
+      if (busy) return
+      const target = e.target as HTMLElement | null
+      if (target?.closest('input, textarea, [contenteditable="true"]')) return
+      const files: File[] = []
+      for (const item of Array.from(e.clipboardData?.items ?? [])) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile()
+          if (file) files.push(file)
         }
       }
-
-      if (successItems.length > 0) {
-        const runEntry: DBRunEntry = {
-          id: runId,
-          files: successItems.map(({ result, thumbnailDataUrl }) => ({
-            fileName: result.fileName,
-            imageDataUrl: thumbnailDataUrl,
-            textBlocks: result.textBlocks,
-            fullText: result.fullText,
-            processingTimeMs: result.processingTimeMs,
-            pageBlocks: result.pageBlocks,
-            imageWidth: result.imageWidth,
-            imageHeight: result.imageHeight,
-            tables: result.tables,
-          })),
-          createdAt: runCreatedAt,
-        }
-        await saveRun(runEntry)
-      }
-
-      setIsProcessing(false)
-      setIsReadyToProcess(false)
+      if (files.length > 0) handleAddFiles(files)
     }
+    document.addEventListener('paste', handleGlobalPaste)
+    return () => document.removeEventListener('paste', handleGlobalPaste)
+  }, [busy, handleAddFiles])
 
-    runOCR()
-  }, [isReadyToProcess]) // eslint-disable-line react-hooks/exhaustive-deps
+  // 画面のどこにドロップしても画像を追加できるようにする（ブラウザがファイルを開くのを防ぐ）
+  useEffect(() => {
+    const onDragOver = (e: DragEvent) => { if (e.dataTransfer?.types.includes('Files')) e.preventDefault() }
+    const onDrop = (e: DragEvent) => {
+      if (!e.dataTransfer?.files.length) return
+      e.preventDefault()
+      if (busy) return
+      const files = filterAcceptedFiles(e.dataTransfer.files)
+      if (files.length > 0) handleAddFiles(files)
+    }
+    window.addEventListener('dragover', onDragOver)
+    window.addEventListener('drop', onDrop)
+    return () => {
+      window.removeEventListener('dragover', onDragOver)
+      window.removeEventListener('drop', onDrop)
+    }
+  }, [busy, handleAddFiles])
 
-  const handleClear = () => {
-    clearImages()
-    setSessionResults([])
-    setSelectedResultIndex(0)
-    setSelectedBlock(null)
-    setSelectedPageBlock(null)
-    resetState()
-    setIsProcessing(false)
-    setIsReadyToProcess(false)
-    setPendingImageIndex(0)
-  }
+  // ↑↓ キーで資料を切り替え（入力欄・ダイアログ表示中は除く）
+  const { selectOffset } = documents
+  const anyDialog = showHistory || showSettings || showAbout || !!regionOCRDialog
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && sidebarOpen) { setSidebarOpen(false); return }
+      if (anyDialog || e.altKey || e.metaKey || e.ctrlKey) return
+      const target = e.target as HTMLElement | null
+      if (target?.closest('input, textarea, select, [contenteditable="true"], [role="separator"]')) return
+      if (e.key === 'ArrowDown') { selectOffset(1); e.preventDefault() }
+      else if (e.key === 'ArrowUp') { selectOffset(-1); e.preventDefault() }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [anyDialog, selectOffset, sidebarOpen])
 
-  // 領域 OCR の共通ハンドラ（pending・result 両方から呼ぶ）
-  const handleRegionOCR = useCallback(async (blocks: TextBlock[], bbox: BoundingBox, srcDataUrl: string) => {
+  const { recognize } = documents
+  const handleRecognizeAll = useCallback(async () => {
+    setSidebarOpen(false)
+    await recognize()
+    setMobileTab('text')
+  }, [recognize])
+
+  const handleRecognizeOne = useCallback(async (id: string) => {
+    documents.select(id)
+    await recognize([id])
+    setMobileTab('text')
+  }, [recognize, documents])
+
+  const handleDownloadAll = useCallback(() => {
+    const results = completedResults(docState)
+    if (results.length === 0) return
+    const s = getSettings()
+    const opts = { format: s.exportFormat, includeFileName: s.includeFileName, ignoreNewlines: s.ignoreNewlines }
+    downloadFile(buildExport(results, 'ocr_results', opts, transform), 'ocr_results', s.exportFormat)
+  }, [docState, transform])
+
+  const handleClear = useCallback(() => {
+    documents.clear()
+    setMobileTab('image')
+  }, [documents])
+
+  // 領域 OCR（未認識の画像でも可）
+  const handleRegionOCR = useCallback(async (blocks: TextBlock[], bbox: BoundingBox) => {
+    if (!currentImageDataUrl) return
     if (blocks.length > 0) setSelectedBlock(blocks[0])
-    const { previewDataUrl, imageData } = await cropRegion(srcDataUrl, bbox)
+    const { previewDataUrl, imageData } = await cropRegion(currentImageDataUrl, bbox)
     setRegionOCRDialog({ cropDataUrl: previewDataUrl, isProcessing: true, result: null })
     try {
       const result = await processRegion(imageData)
@@ -237,10 +244,10 @@ export default function App() {
     } catch {
       setRegionOCRDialog(prev => prev ? { ...prev, isProcessing: false, result: { textBlocks: [], fullText: '' } } : null)
     }
-  }, [processRegion])
+  }, [currentImageDataUrl, processRegion])
 
   const handleHistorySelect = (run: DBRunEntry) => {
-    const restoredResults: OCRResult[] = run.files.map((file, i) => ({
+    const restored: OCRResult[] = run.files.map((file, i) => ({
       id: `${run.id}-${i}`,
       fileName: file.fileName,
       imageDataUrl: file.imageDataUrl,
@@ -253,17 +260,25 @@ export default function App() {
       imageHeight: file.imageHeight,
       tables: file.tables,
     }))
-    setSessionResults(restoredResults)
-    setSelectedResultIndex(0)
-    setSelectedBlock(null)
-    setSelectedPageBlock(null)
+    documents.restore(restored)
     setShowHistory(false)
+    setMobileTab('text')
   }
 
+  // 進捗表示: モデル読み込み中、ファイル読み込み中、認識中
   const isModelLoading = jobState.status === 'loading_model'
-  const isWorking = isLoadingFiles || isProcessing
-  const hasResults = sessionResults.length > 0
-  const hasPendingImages = processedImages.length > 0 && !isWorking && !hasResults
+  const showProgress = isModelLoading || (isRecognizing && jobState.status !== 'idle') || jobState.status === 'error'
+  const loadingMessage = isLoadingFiles && fileLoadingState
+    ? (fileLoadingState.currentPage != null && fileLoadingState.totalPages != null
+      ? (lang === 'ja'
+        ? `${fileLoadingState.fileName} を読み込み中 (${fileLoadingState.currentPage}/${fileLoadingState.totalPages})`
+        : `Loading ${fileLoadingState.fileName} (${fileLoadingState.currentPage}/${fileLoadingState.totalPages})`)
+      : (lang === 'ja' ? `${fileLoadingState.fileName} を読み込み中…` : `Loading ${fileLoadingState.fileName}…`))
+    : !isReady && !isModelLoading && jobState.status !== 'error'
+      ? (lang === 'ja' ? 'OCRエンジンを準備中…' : 'Preparing OCR engine…')
+      : null
+
+  const ja = lang === 'ja'
 
   return (
     <div className="app">
@@ -272,261 +287,94 @@ export default function App() {
         onToggleLanguage={toggleLanguage}
         onOpenSettings={() => setShowSettings(true)}
         onOpenHistory={() => setShowHistory(true)}
-        onLogoClick={handleClear}
+        onOpenAbout={() => setShowAbout(true)}
+        onLogoClick={() => setSidebarOpen(false)}
+        onOpenMenu={() => setSidebarOpen(true)}
+        menuOpen={sidebarOpen}
       />
 
-      <main className="main">
-        {!hasResults && !isWorking && !isModelLoading && !hasPendingImages && (
-          <section className="upload-section">
-            <FileDropZone onFilesSelected={handleFilesSelected} lang={lang} disabled={isWorking} />
-            <div className="upload-actions">
-              <DirectoryPicker onFilesSelected={handleFilesSelected} lang={lang} disabled={isWorking} />
-              <button className="btn btn-secondary" onClick={handlePasteFromClipboard} disabled={isWorking}>
-                {lang === 'ja' ? 'クリップボードから貼り付け' : 'Paste from Clipboard'}
-              </button>
-              {SAMPLES.map((sample, i) => (
-                <button
-                  key={sample.url}
-                  className="btn btn-secondary"
-                  onClick={() => handleSampleLoad(sample.url, sample.fileName, sample.type)}
-                  disabled={isWorking}
-                  title={sample.title[lang]}
-                >
-                  {lang === 'ja' ? `サンプル${i + 1}` : `Sample ${i + 1}`}
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
+      <div className="workspace">
+        <Sidebar
+          lang={lang}
+          docs={docState.docs}
+          selectedId={docState.selectedId}
+          samples={SAMPLES}
+          busy={busy}
+          isRecognizing={isRecognizing}
+          loadingMessage={loadingMessage}
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          onAddFiles={handleAddFiles}
+          onPaste={handlePasteFromClipboard}
+          onSample={handleSample}
+          onSelect={documents.select}
+          onRecognizeAll={handleRecognizeAll}
+          onRecognizeOne={handleRecognizeOne}
+          onRemove={documents.remove}
+          onDownloadAll={handleDownloadAll}
+          onClear={handleClear}
+        />
 
-        {hasPendingImages && (
-          <section className="result-section">
-            {/* 左サイドバー */}
-            {processedImages.length > 1 && (
-              <div className="result-sidebar">
-                {processedImages.map((img, i) => (
-                  <button
-                    key={i}
-                    className={`result-sidebar-item ${i === pendingImageIndex ? 'active' : ''}`}
-                    onClick={() => setPendingImageIndex(i)}
-                    title={img.pageIndex ? `${img.fileName} (p.${img.pageIndex})` : img.fileName}
-                  >
-                    <img src={img.thumbnailDataUrl} alt={img.fileName} />
-                    <span className="result-sidebar-label">
-                      {img.pageIndex ? `${img.fileName} (p.${img.pageIndex})` : img.fileName}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div className="result-content">
-              {/* ページナビゲーション */}
-              {processedImages.length > 1 && (
-                <div className="result-page-nav">
-                  <button
-                    className="btn-nav"
-                    onClick={() => setPendingImageIndex(prev => prev - 1)}
-                    disabled={pendingImageIndex === 0}
-                    title={lang === 'ja' ? '前のファイル' : 'Previous file'}
-                  >←</button>
-                  <select
-                    className="result-page-select"
-                    value={pendingImageIndex}
-                    onChange={(e) => setPendingImageIndex(Number(e.target.value))}
-                  >
-                    {processedImages.map((img, i) => (
-                      <option key={i} value={i}>
-                        {i + 1} / {processedImages.length}
-                        {img.pageIndex ? `${img.fileName} (p.${img.pageIndex})` : img.fileName}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    className="btn-nav"
-                    onClick={() => setPendingImageIndex(prev => prev + 1)}
-                    disabled={pendingImageIndex === processedImages.length - 1}
-                    title={lang === 'ja' ? '次のファイル' : 'Next file'}
-                  >→</button>
-                </div>
-              )}
-
-              <div className="result-main">
-                <div className="result-left">
-                  <button className="btn btn-primary btn-above-viewer" onClick={() => setIsReadyToProcess(true)}>
-                    {lang === 'ja' ? '認識を開始' : 'Start Recognition'}
-                  </button>
-                  <ImageViewer
-                    imageDataUrl={pendingDataUrls[pendingImageIndex] ?? ''}
-                    textBlocks={[]}
-                    selectedBlock={null}
-                    onBlockSelect={() => {}}
-                    onRegionSelect={(blocks, bbox) =>
-                      handleRegionOCR(blocks, bbox, pendingDataUrls[pendingImageIndex] ?? '')
-                    }
-                  />
-                  <p className="region-select-hint">
-                    {lang === 'ja'
-                      ? 'マウスで領域をドラッグすると、その領域のみ認識をおこないます'
-                      : 'Drag to select a region and run OCR on that area only'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {(isLoadingFiles || isModelLoading) && (
-          <div className="processing-section">
-            {isLoadingFiles && fileLoadingState && (
-              <div className="file-loading-status">
-                <div className="file-loading-spinner" />
-                <span className="file-loading-message">
-                  {fileLoadingState.currentPage != null && fileLoadingState.totalPages != null
-                    ? lang === 'ja'
-                      ? `${fileLoadingState.fileName} をレンダリング中... (${fileLoadingState.currentPage} / ${fileLoadingState.totalPages} ページ)`
-                      : `Rendering ${fileLoadingState.fileName}... (page ${fileLoadingState.currentPage} / ${fileLoadingState.totalPages})`
-                    : lang === 'ja'
-                      ? `${fileLoadingState.fileName} を読み込み中...`
-                      : `Loading ${fileLoadingState.fileName}...`}
-                </span>
-              </div>
-            )}
-            <ProgressBar jobState={jobState} lang={lang} />
-            {!isReady && !isModelLoading && (
-              <p className="model-loading-note">
-                {lang === 'ja'
-                  ? '初回起動時はモデルのダウンロードに時間がかかります（数分程度）。次回以降はキャッシュから高速起動します。'
-                  : 'First run requires model download (may take a few minutes). Subsequent runs will use the cached model.'}
-              </p>
-            )}
+        <main
+          className="main-content"
+          data-mobile-tab={mobileTab}
+          style={{ '--result-panel-width': `${resultPanelWidth}px` } as React.CSSProperties}
+        >
+          <div className="mobile-tabs" role="tablist" aria-label={ja ? '表示切替' : 'View'}>
+            <button role="tab" aria-selected={mobileTab === 'image'} className={mobileTab === 'image' ? 'active' : ''} onClick={() => setMobileTab('image')}>
+              {ja ? '画像' : 'Image'}
+            </button>
+            <button role="tab" aria-selected={mobileTab === 'text'} className={mobileTab === 'text' ? 'active' : ''} onClick={() => setMobileTab('text')}>
+              {ja ? 'テキスト' : 'Text'}
+              {currentDoc?.status === 'done' && <span className="mobile-tab-dot" aria-hidden />}
+            </button>
           </div>
-        )}
 
-        {(hasResults || isProcessing) && processedImages.length > 0 && (
-          <section className="result-section">
-            {/* 左サイドバー: 全ファイル一覧（未完了も含む） */}
-            {processedImages.length > 1 && (
-              <div className="result-sidebar">
-                {processedImages.map((img, i) => {
-                  const result = sessionResults[i]
-                  const isInProgress = !result && isProcessing && i === sessionResults.length
-                  const isPending = !result && !isInProgress
-                  return (
-                    <button
-                      key={i}
-                      className={`result-sidebar-item ${result && i === selectedResultIndex ? 'active' : ''} ${isPending || isInProgress ? 'sidebar-pending' : ''}`}
-                      onClick={() => { if (result) { setSelectedResultIndex(i); setSelectedBlock(null) } }}
-                      disabled={!result}
-                      title={img.pageIndex ? `${img.fileName} (p.${img.pageIndex})` : img.fileName}
-                    >
-                      <div className="result-sidebar-thumb-wrap">
-                        <img src={result ? result.imageDataUrl : img.thumbnailDataUrl} alt={img.fileName} />
-                        {isInProgress && <div className="sidebar-item-spinner" />}
-                      </div>
-                      <span className="result-sidebar-label">
-                        {img.pageIndex ? `${img.fileName} (p.${img.pageIndex})` : img.fileName}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
+          <ImagePane
+            lang={lang}
+            doc={currentDoc}
+            imageDataUrl={currentImageDataUrl}
+            jobState={jobState}
+            showProgress={showProgress}
+            selectedBlock={selectedBlock}
+            selectedPageBlock={selectedPageBlock}
+            onBlockSelect={(block) => { setSelectedBlock(block); setSelectedPageBlock(null) }}
+            onPageBlockSelect={(block) => { setSelectedPageBlock(block); setSelectedBlock(null) }}
+            onRegionSelect={handleRegionOCR}
+            onAddFiles={handleAddFiles}
+            onOpenAbout={() => setShowAbout(true)}
+            onOpenMenu={() => setSidebarOpen(true)}
+          />
 
-            {/* メインコンテンツ */}
-            <div className="result-content">
-              {/* OCR処理中プログレスバー */}
-              {isProcessing && (
-                <div className="result-progress-inline">
-                  <ProgressBar jobState={jobState} lang={lang} />
-                </div>
-              )}
+          <ResizeHandle width={resultPanelWidth} onChange={setResultPanelWidth} lang={lang} />
 
-              {/* ページナビゲーション */}
-              <div className="result-page-nav">
-                <button
-                  className="btn-nav"
-                  onClick={() => { setSelectedResultIndex(prev => prev - 1); setSelectedBlock(null); setSelectedPageBlock(null) }}
-                  disabled={selectedResultIndex === 0}
-                  title={lang === 'ja' ? '前のファイル' : 'Previous file'}
-                >
-                  ←
-                </button>
-                <select
-                  className="result-page-select"
-                  value={selectedResultIndex}
-                  onChange={(e) => {
-                    setSelectedResultIndex(Number(e.target.value))
-                    setSelectedBlock(null)
-                    setSelectedPageBlock(null)
-                  }}
-                >
-                  {processedImages.map((img, i) => {
-                    const label = img.pageIndex ? `${img.fileName} (p.${img.pageIndex})` : img.fileName
-                    return (
-                      <option key={i} value={i} disabled={i >= sessionResults.length}>
-                        {i + 1} / {processedImages.length}{'\u3000'}{label}
-                      </option>
-                    )
-                  })}
-                </select>
-                <button
-                  className="btn-nav"
-                  onClick={() => { setSelectedResultIndex(prev => prev + 1); setSelectedBlock(null); setSelectedPageBlock(null) }}
-                  disabled={selectedResultIndex >= sessionResults.length - 1}
-                  title={lang === 'ja' ? '次のファイル' : 'Next file'}
-                >
-                  →
-                </button>
-              </div>
+          <TextPane
+            lang={lang}
+            doc={currentDoc}
+            selectedBlock={selectedBlock}
+            selectedPageBlock={selectedPageBlock}
+            selectedPageBlockText={selectedPageBlockText}
+            busy={busy}
+            onRecognize={handleRecognizeOne}
+          />
 
-              <div
-                className="result-main result-main-resizable"
-                style={{ '--result-panel-width': `${resultPanelWidth}px` } as React.CSSProperties}
+          {/* モバイル: 画像タブの下部操作バー */}
+          {docState.docs.length > 0 && (
+            <div className="mobile-actionbar">
+              <button
+                className="btn btn-primary"
+                onClick={handleRecognizeAll}
+                disabled={busy || !docState.docs.some((d) => d.image && (d.status === 'pending' || d.status === 'error'))}
               >
-                <div className="result-left">
-                  {!isProcessing && (
-                    <button className="btn btn-secondary btn-above-viewer" onClick={handleClear}>
-                      {lang === 'ja' ? '新しいファイルを処理' : 'Process New Files'}
-                    </button>
-                  )}
-                  {currentResult && (
-                    <ImageViewer
-                      imageDataUrl={currentResult.imageDataUrl}
-                      textBlocks={currentResult.textBlocks}
-                      selectedBlock={selectedBlock}
-                      onBlockSelect={(block) => { setSelectedBlock(block); setSelectedPageBlock(null) }}
-                      onRegionSelect={(blocks, bbox) =>
-                        currentResult
-                          ? handleRegionOCR(blocks, bbox, currentResult.imageDataUrl)
-                          : undefined
-                      }
-                      pageBlocks={currentResult.pageBlocks}
-                      selectedPageBlock={selectedPageBlock}
-                      onPageBlockSelect={(block) => { setSelectedPageBlock(block); setSelectedBlock(null) }}
-                    />
-                  )}
-                  <p className="region-select-hint">
-                    {lang === 'ja'
-                      ? 'マウスで領域をドラッグすると、その領域のみ認識をおこないます'
-                      : 'Drag to select a region and run OCR on that area only'}
-                  </p>
-                </div>
-
-                <ResizeHandle width={resultPanelWidth} onChange={setResultPanelWidth} lang={lang} />
-
-                <div className="result-right">
-                  <ResultPanel result={currentResult} selectedBlock={selectedBlock} selectedPageBlockText={selectedPageBlockText} lang={lang} />
-                  <ResultActions results={sessionResults} currentResult={currentResult} lang={lang} />
-                </div>
-              </div>
-
+                {isRecognizing ? (ja ? '認識中…' : 'Recognizing…') : (ja ? '認識を開始' : 'Recognize')}
+              </button>
+              <button className="btn btn-secondary" onClick={() => setSidebarOpen(true)}>
+                {ja ? `画像一覧（${docState.docs.length}）` : `Images (${docState.docs.length})`}
+              </button>
             </div>
-          </section>
-        )}
-      </main>
-
-      <Footer lang={lang} />
+          )}
+        </main>
+      </div>
 
       {showHistory && (
         <HistoryPanel
@@ -540,6 +388,7 @@ export default function App() {
       {showSettings && (
         <SettingsModal onClose={() => setShowSettings(false)} lang={lang} backend={backend} recWorkerCount={recWorkerCount} />
       )}
+      {showAbout && <AboutModal lang={lang} onClose={() => setShowAbout(false)} />}
       {regionOCRDialog && (
         <RegionOCRDialog
           cropDataUrl={regionOCRDialog.cropDataUrl}

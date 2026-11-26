@@ -1,13 +1,11 @@
 import { useState } from 'react'
 import type { OCRResult } from '../../types/ocr'
 import { downloadFile, copyToClipboard, type ExportFormat } from '../../utils/textExport'
-import {
-  toExportPage, toMarkdown, toHtmlDocument, toUpstreamJson, toUpstreamXml, toParagraphText,
-} from '../../utils/document-export'
+import { buildExport } from '../../utils/export-builder'
+import { useSettings } from '../../utils/settings'
 import { useTextTransform } from '../../hooks/useTextTransform'
 
 interface ResultActionsProps {
-  results: OCRResult[]
   currentResult: OCRResult | null
   lang: 'ja' | 'en'
 }
@@ -21,52 +19,20 @@ const FORMAT_LABELS: Record<ExportFormat, { ja: string; en: string }> = {
   xml: { ja: 'XML（NDLOCR-Lite 互換）', en: 'XML (NDLOCR-Lite)' },
 }
 
-export function ResultActions({ results, currentResult, lang }: ResultActionsProps) {
+/** 選択中の資料の認識結果をコピー / ダウンロード（形式・オプションは設定に保存して全体で共有） */
+export function ResultActions({ currentResult, lang }: ResultActionsProps) {
   const ja = lang === 'ja'
   const [copied, setCopied] = useState(false)
-  const [includeFileName, setIncludeFileName] = useState(false)
-  const [ignoreNewlines, setIgnoreNewlines] = useState(false)
-  const [format, setFormat] = useState<ExportFormat>('txt')
+  const [settings, updateSettings] = useSettings()
   const transform = useTextTransform()
-
+  const format = settings.exportFormat
+  const opts = { format, includeFileName: settings.includeFileName, ignoreNewlines: settings.ignoreNewlines }
   const isPlainText = format === 'txt' || format === 'paragraph'
-
-  /** 1 ページ分のテキスト系出力（txt / 段落 / md） */
-  const buildPageText = (result: OCRResult, fmt: ExportFormat): string => {
-    const page = toExportPage(result)
-    let body: string
-    if (fmt === 'paragraph') body = toParagraphText(page, transform)
-    else if (fmt === 'md') body = toMarkdown(page, transform)
-    else body = transform(result.fullText)
-    if (fmt === 'txt' || fmt === 'paragraph') {
-      if (ignoreNewlines) body = body.replace(/\n/g, '')
-      if (includeFileName) body = `=== ${result.fileName} ===\n${body}`
-    } else if (fmt === 'md' && includeFileName) {
-      body = `# ${result.fileName}\n\n${body}`
-    }
-    return body
-  }
-
-  const buildContent = (targets: OCRResult[], title: string): string => {
-    const pages = targets.map(toExportPage)
-    switch (format) {
-      case 'html':
-        return toHtmlDocument(title, pages, transform)
-      case 'json':
-        return toUpstreamJson(pages, transform)
-      case 'xml':
-        return toUpstreamXml(pages, transform)
-      case 'md':
-        return targets.map((r) => buildPageText(r, 'md')).join('\n\n---\n\n')
-      default:
-        return targets.map((r) => buildPageText(r, format)).join('\n\n')
-    }
-  }
 
   const handleCopy = async () => {
     if (!currentResult) return
     try {
-      await copyToClipboard(buildContent([currentResult], currentResult.fileName))
+      await copyToClipboard(buildExport([currentResult], currentResult.fileName, opts, transform))
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
@@ -76,46 +42,47 @@ export function ResultActions({ results, currentResult, lang }: ResultActionsPro
 
   const handleDownload = () => {
     if (!currentResult) return
-    downloadFile(buildContent([currentResult], currentResult.fileName), currentResult.fileName, format)
-  }
-
-  const handleDownloadAll = () => {
-    if (results.length === 0) return
-    downloadFile(buildContent(results, 'ocr_results'), 'ocr_results', format)
+    downloadFile(buildExport([currentResult], currentResult.fileName, opts, transform), currentResult.fileName, format)
   }
 
   const disabled = !currentResult
 
   return (
     <div className="result-actions">
-      <label className="result-actions-option result-actions-format">
-        {ja ? '形式' : 'Format'}
-        <select value={format} onChange={(e) => setFormat(e.target.value as ExportFormat)} data-testid="export-format">
-          {(Object.keys(FORMAT_LABELS) as ExportFormat[]).map((f) => (
-            <option key={f} value={f}>{FORMAT_LABELS[f][lang]}</option>
-          ))}
-        </select>
-      </label>
-      {(isPlainText || format === 'md') && (
-        <label className="result-actions-option">
-          <input
-            type="checkbox"
-            checked={includeFileName}
-            onChange={(e) => setIncludeFileName(e.target.checked)}
-          />
-          {ja ? 'ファイル名を記載する' : 'Include file name'}
+      <div className="result-actions-options">
+        <label className="result-actions-option result-actions-format">
+          {ja ? '形式' : 'Format'}
+          <select
+            value={format}
+            onChange={(e) => updateSettings({ exportFormat: e.target.value as ExportFormat })}
+            data-testid="export-format"
+          >
+            {(Object.keys(FORMAT_LABELS) as ExportFormat[]).map((f) => (
+              <option key={f} value={f}>{FORMAT_LABELS[f][lang]}</option>
+            ))}
+          </select>
         </label>
-      )}
-      {isPlainText && (
-        <label className="result-actions-option">
-          <input
-            type="checkbox"
-            checked={ignoreNewlines}
-            onChange={(e) => setIgnoreNewlines(e.target.checked)}
-          />
-          {ja ? '改行を無視する' : 'Ignore newlines'}
-        </label>
-      )}
+        {(isPlainText || format === 'md') && (
+          <label className="result-actions-option">
+            <input
+              type="checkbox"
+              checked={settings.includeFileName}
+              onChange={(e) => updateSettings({ includeFileName: e.target.checked })}
+            />
+            {ja ? 'ファイル名を記載' : 'Include file name'}
+          </label>
+        )}
+        {isPlainText && (
+          <label className="result-actions-option">
+            <input
+              type="checkbox"
+              checked={settings.ignoreNewlines}
+              onChange={(e) => updateSettings({ ignoreNewlines: e.target.checked })}
+            />
+            {ja ? '改行を無視' : 'Ignore newlines'}
+          </label>
+        )}
+      </div>
       <div className="result-actions-buttons">
         <button className="btn btn-primary" onClick={handleCopy} disabled={disabled}>
           {copied ? (ja ? 'コピーしました！' : 'Copied!') : (ja ? 'コピー' : 'Copy')}
@@ -123,11 +90,6 @@ export function ResultActions({ results, currentResult, lang }: ResultActionsPro
         <button className="btn btn-secondary" onClick={handleDownload} disabled={disabled}>
           {ja ? 'ダウンロード' : 'Download'}
         </button>
-        {results.length > 1 && (
-          <button className="btn btn-secondary" onClick={handleDownloadAll}>
-            {ja ? '全てダウンロード' : 'Download All'}
-          </button>
-        )}
       </div>
     </div>
   )

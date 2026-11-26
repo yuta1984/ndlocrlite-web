@@ -2,6 +2,7 @@
  * ユーザー設定（localStorage に保存）
  */
 import { useSyncExternalStore } from 'react'
+import type { ExportFormat } from './textExport'
 
 export interface AppSettings {
   /** レイアウト検出の実行バックエンド（'auto': WebGPU が使えれば WebGPU） */
@@ -12,6 +13,10 @@ export interface AppSettings {
   characterInclusion: boolean
   /** 表構造を推定する（TableCenterNet） */
   tableStructure: boolean
+  /** エクスポート形式・オプション（テキストエリアとサイドバーで共有） */
+  exportFormat: ExportFormat
+  includeFileName: boolean
+  ignoreNewlines: boolean
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -19,6 +24,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   recWorkers: 0,
   characterInclusion: false,
   tableStructure: false,
+  exportFormat: 'txt',
+  includeFileName: false,
+  ignoreNewlines: false,
 }
 
 const KEY = 'ndlocr-lite-web.settings'
