@@ -23,13 +23,15 @@ export const DEFAULT_SETTINGS: AppSettings = {
   backend: 'auto',
   recWorkers: 0,
   characterInclusion: false,
-  tableStructure: false,
+  tableStructure: true,
   exportFormat: 'txt',
   includeFileName: false,
   ignoreNewlines: false,
 }
 
 const KEY = 'ndlocr-lite-web.settings'
+/** 保存形式のバージョン。既定値を変えたときに既存の保存値を一度だけ移行する */
+const SETTINGS_VERSION = 2
 const listeners = new Set<() => void>()
 let cache: AppSettings | null = null
 
@@ -37,17 +39,25 @@ export function getSettings(): AppSettings {
   if (cache) return cache
   try {
     const raw = localStorage.getItem(KEY)
-    cache = { ...DEFAULT_SETTINGS, ...(raw ? JSON.parse(raw) : {}) }
+    const saved = raw ? JSON.parse(raw) : {}
+    cache = migrate({ ...DEFAULT_SETTINGS, ...saved }, saved.version ?? 1)
   } catch {
     cache = { ...DEFAULT_SETTINGS }
   }
   return cache!
 }
 
+/** v1 → v2: 表構造推定を既定で有効化（v1 では既定 off のまま保存されていたため一度だけ on にする） */
+export function migrate(settings: AppSettings, version: number): AppSettings {
+  let s = settings
+  if (version < 2) s = { ...s, tableStructure: true }
+  return s
+}
+
 export function updateSettings(patch: Partial<AppSettings>) {
   cache = { ...getSettings(), ...patch }
   try {
-    localStorage.setItem(KEY, JSON.stringify(cache))
+    localStorage.setItem(KEY, JSON.stringify({ ...cache, version: SETTINGS_VERSION }))
   } catch {
     // ストレージ不可（プライベートモード等）は無視
   }
