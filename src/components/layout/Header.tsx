@@ -6,6 +6,7 @@ interface HeaderProps {
   onOpenSettings: () => void
   onOpenHistory: () => void
   onOpenAbout: () => void
+  onOpenTechInfo: () => void
   onLogoClick: () => void
   /** モバイル: サイドバー（ドロワー）を開く */
   onOpenMenu: () => void
@@ -13,7 +14,7 @@ interface HeaderProps {
 }
 
 export function Header({
-  lang, onToggleLanguage, onOpenSettings, onOpenHistory, onOpenAbout, onLogoClick, onOpenMenu, menuOpen,
+  lang, onToggleLanguage, onOpenSettings, onOpenHistory, onOpenAbout, onOpenTechInfo, onLogoClick, onOpenMenu, menuOpen,
 }: HeaderProps) {
   const ja = lang === 'ja'
   return (
@@ -37,6 +38,10 @@ export function Header({
         <button className="header-link" onClick={onOpenAbout} aria-label={ja ? 'このアプリについて' : 'About'}>
           <span className="header-link-full">{ja ? 'このアプリについて' : 'About'}</span>
           <span className="header-link-short" aria-hidden>ⓘ</span>
+        </button>
+        <button className="header-link" onClick={onOpenTechInfo} aria-label={ja ? '技術情報' : 'Technical information'}>
+          <span className="header-link-full">{ja ? '技術情報' : 'Tech info'}</span>
+          <span className="header-link-short" aria-hidden>🛠</span>
         </button>
         <button className="btn-icon" onClick={onOpenHistory} title={ja ? '処理履歴' : 'History'} aria-label={ja ? '処理履歴' : 'History'}>
           📋

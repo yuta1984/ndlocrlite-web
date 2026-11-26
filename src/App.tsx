@@ -11,6 +11,7 @@ import { useTextTransform } from './hooks/useTextTransform'
 import { selectedDocument, completedResults } from './state/documents'
 import { Header } from './components/layout/Header'
 import { AboutModal } from './components/layout/AboutModal'
+import { TechInfoModal } from './components/layout/TechInfoModal'
 import { ResizeHandle } from './components/layout/ResizeHandle'
 import { Sidebar, type SampleDef } from './components/sidebar/Sidebar'
 import { ImagePane } from './components/workspace/ImagePane'
@@ -80,6 +81,7 @@ export default function App() {
   const [showHistory, setShowHistory] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
+  const [showTechInfo, setShowTechInfo] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [mobileTab, setMobileTab] = useState<MobileTab>('image')
   const [regionOCRDialog, setRegionOCRDialog] = useState<{
@@ -201,7 +203,7 @@ export default function App() {
 
   // ↑↓ キーで資料を切り替え（入力欄・ダイアログ表示中は除く）
   const { selectOffset } = documents
-  const anyDialog = showHistory || showSettings || showAbout || !!regionOCRDialog
+  const anyDialog = showHistory || showSettings || showAbout || showTechInfo || !!regionOCRDialog
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && sidebarOpen) { setSidebarOpen(false); return }
@@ -297,6 +299,7 @@ export default function App() {
         onOpenSettings={() => setShowSettings(true)}
         onOpenHistory={() => setShowHistory(true)}
         onOpenAbout={() => setShowAbout(true)}
+        onOpenTechInfo={() => setShowTechInfo(true)}
         onLogoClick={() => setSidebarOpen(false)}
         onOpenMenu={() => setSidebarOpen(true)}
         menuOpen={sidebarOpen}
@@ -398,6 +401,9 @@ export default function App() {
         <SettingsModal onClose={() => setShowSettings(false)} lang={lang} backend={backend} recWorkerCount={recWorkerCount} />
       )}
       {showAbout && <AboutModal lang={lang} onClose={() => setShowAbout(false)} />}
+      {showTechInfo && (
+        <TechInfoModal lang={lang} onClose={() => setShowTechInfo(false)} backend={backend} recWorkerCount={recWorkerCount} />
+      )}
       {regionOCRDialog && (
         <RegionOCRDialog
           cropDataUrl={regionOCRDialog.cropDataUrl}
