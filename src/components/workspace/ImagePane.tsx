@@ -4,6 +4,7 @@ import type { OcrDocument } from '../../state/documents'
 import { ImageViewer } from '../viewer/ImageViewer'
 import { ProgressBar } from '../progress/ProgressBar'
 import { filterAcceptedFiles } from '../../utils/file-accept'
+import { useSettings } from '../../utils/settings'
 
 interface ImagePaneProps {
   lang: 'ja' | 'en'
@@ -29,6 +30,7 @@ export function ImagePane({
 }: ImagePaneProps) {
   const ja = lang === 'ja'
   const [dragging, setDragging] = useState(false)
+  const [settings] = useSettings()
   const result = doc?.result
 
   return (
@@ -66,10 +68,13 @@ export function ImagePane({
               pageBlocks={result?.pageBlocks}
               selectedPageBlock={selectedPageBlock}
               onPageBlockSelect={onPageBlockSelect}
+              lang={lang}
             />
           </div>
           <p className="region-select-hint">
-            {ja ? 'マウスで領域をドラッグすると、その領域のみ認識をおこないます' : 'Drag to select a region and run OCR on that area only'}
+            {settings.viewerMode === 'select'
+              ? (ja ? '領域選択モード: ドラッグした範囲だけを認識します（R / V キーでモード切替）' : 'Select mode: drag to recognize only that area (R / V to switch)')
+              : (ja ? 'ズーム・移動モード: ドラッグで移動、ホイールで拡大縮小、行をクリックで選択（「領域選択」で範囲を認識）' : 'Pan mode: drag to move, scroll to zoom, click a line to select (use "Select" to recognize an area)')}
           </p>
         </>
       ) : (

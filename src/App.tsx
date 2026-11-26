@@ -106,6 +106,15 @@ export default function App() {
     [currentImage, currentDoc?.result?.imageDataUrl]
   )
 
+  // 元ページのサイズ（領域OCRで切り出し画像を同じ縮尺の白地に置くため。履歴から復元した資料は保存済みのサイズ）
+  const resultWidth = currentDoc?.result?.imageWidth
+  const resultHeight = currentDoc?.result?.imageHeight
+  const currentPageSize = useMemo(() => {
+    if (currentImage) return { width: currentImage.imageData.width, height: currentImage.imageData.height }
+    if (resultWidth && resultHeight) return { width: resultWidth, height: resultHeight }
+    return undefined
+  }, [currentImage, resultWidth, resultHeight])
+
   const selectedPageBlockText = useMemo(() => {
     const result = currentDoc?.result
     if (!selectedPageBlock || !result) return null
@@ -239,12 +248,12 @@ export default function App() {
     const { previewDataUrl, imageData } = await cropRegion(currentImageDataUrl, bbox)
     setRegionOCRDialog({ cropDataUrl: previewDataUrl, isProcessing: true, result: null })
     try {
-      const result = await processRegion(imageData)
+      const result = await processRegion(imageData, currentPageSize)
       setRegionOCRDialog(prev => prev ? { ...prev, isProcessing: false, result } : null)
     } catch {
       setRegionOCRDialog(prev => prev ? { ...prev, isProcessing: false, result: { textBlocks: [], fullText: '' } } : null)
     }
-  }, [currentImageDataUrl, processRegion])
+  }, [currentImageDataUrl, processRegion, currentPageSize])
 
   const handleHistorySelect = (run: DBRunEntry) => {
     const restored: OCRResult[] = run.files.map((file, i) => ({

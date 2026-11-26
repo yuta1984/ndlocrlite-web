@@ -147,21 +147,47 @@
 .image-pane-canvas {
   flex: 1;
   min-height: 0;
-  container-type: size;
+  position: relative;
+}
+
+/* ----- OpenSeadragon ビューア ----- */
+.osd-viewer { position: absolute; inset: 0; width: auto; display: block; user-select: none; }
+.osd-container { position: absolute; inset: 0; }
+.osd-viewer.mode-select .osd-container,
+.osd-viewer.mode-select .osd-container canvas { cursor: crosshair !important; }
+.osd-viewer.mode-pan .osd-container canvas { cursor: grab; }
+.osd-viewer .region-box,
+.osd-viewer .page-block-box,
+.osd-viewer .drag-selection { pointer-events: none; box-sizing: border-box; }
+.viewer-toolbar {
+  position: absolute;
+  top: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+  gap: 0.5rem;
+  background: rgba(32, 36, 40, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0.25rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
 }
-.image-pane-canvas .image-viewer { display: inline-block; width: auto; line-height: 0; }
-.image-pane-canvas .viewer-image {
-  width: auto;
-  max-width: calc(100cqw - 1.5rem);
-  max-height: calc(100cqh - 0.5rem);
+.viewer-toolbar button {
+  background: none;
   border: none;
-  border-radius: 2px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  color: #e8eaed;
+  font-size: 0.8rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 5px;
+  cursor: pointer;
+  white-space: nowrap;
 }
+.viewer-toolbar button:hover { background: rgba(255, 255, 255, 0.12); }
+.viewer-mode-toggle, .viewer-zoom { display: flex; gap: 0.15rem; }
+.viewer-mode-toggle { border-right: 1px solid rgba(255, 255, 255, 0.2); padding-right: 0.4rem; }
+.viewer-mode-toggle button.active { background: var(--color-primary); color: #fff; }
+.viewer-zoom button { min-width: 2rem; font-size: 0.95rem; }
 .image-pane .region-select-hint { flex: none; margin: 0; padding: 0.35rem 0.75rem; font-size: 0.72rem; color: #9aa0a6; text-align: center; }
 .pane-progress { flex: none; background: var(--color-surface); color: var(--color-text); border-bottom: 1px solid var(--color-border); }
 .pane-progress .progress-container { margin: 0; box-shadow: none; border-radius: 0; padding: 0.6rem 0.9rem; }
@@ -244,6 +270,7 @@
   .mobile-actionbar .btn { flex: 1; }
   .text-pane .result-actions { padding-bottom: calc(0.6rem + env(safe-area-inset-bottom)); }
   .image-pane .region-select-hint { display: none; }
+  .viewer-btn-label { display: none; }
   .only-desktop { display: none; }
   .only-mobile { display: inline-flex; }
 }

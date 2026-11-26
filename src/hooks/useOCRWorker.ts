@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import type { OCRJobState, OCRResult, ProcessedImage, TextBlock } from '../types/ocr'
 import type { WorkerInMessage, WorkerOutMessage } from '../types/worker'
-import type { RGBAImage } from '../worker/image-ops'
+import { padToSize, type RGBAImage } from '../worker/image-ops'
 import { imageDataToDataUrl } from '../utils/imageLoader'
 import { recognizeCascade } from '../worker/cascade'
 import { assemblePage } from '../worker/assemble'
@@ -333,15 +333,21 @@ export function useOCRWorker() {
     [callWorker, detectLayout, recognizeLayout, inferTables]
   )
 
-  /** processRegion: 領域OCR用（デスクトップは認識 Worker プールを使用） */
+  /**
+   * processRegion: 領域OCR用（デスクトップは認識 Worker プールを使用）
+   * pageSize（元画像のサイズ）を渡すと、切り出し画像を元ページと同じ大きさの白地に置いてから認識する
+   * （小さな領域を 800px に拡大してレイアウト認識すると検出が崩れるため）
+   */
   const processRegion = useCallback(
-    async (imageData: ImageData): Promise<{ textBlocks: TextBlock[]; fullText: string }> => {
+    async (imageData: ImageData, pageSize?: { width: number; height: number }): Promise<{ textBlocks: TextBlock[]; fullText: string }> => {
       const id = `region-${Date.now()}`
+      const padded = pageSize ? padToSize(toRGBA(imageData), pageSize.width, pageSize.height) : toRGBA(imageData)
+      const input = new ImageData(new Uint8ClampedArray(padded.data), padded.width, padded.height)
       if (poolRef.current) {
-        const layout = await detectLayout(imageData, id, true)
+        const layout = await detectLayout(input, id, true)
         return recognizeLayout(layout)
       }
-      const rgba = toRGBA(imageData)
+      const rgba = toRGBA(input)
       return callWorker(
         { type: 'OCR_PROCESS', id, imageData: rgba, startTime: Date.now() },
         (msg) => (msg.type === 'OCR_COMPLETE' ? { textBlocks: msg.textBlocks, fullText: msg.txt } : undefined),

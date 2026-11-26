@@ -220,3 +220,19 @@ export function padSquareResizePIL(img: RGBAImage, outSize: number): Uint8Clampe
   }
   return out
 }
+
+/**
+ * 画像を左上に置き、指定サイズまで白で余白を付ける（元画像は縮小しない）
+ * 領域 OCR 用: 小さな切り出し画像をそのままレイアウト認識に掛けると 800px へ大きく拡大され、
+ * 文字が学習時（ページ全体）より極端に大きくなって検出が崩れるため、元ページと同じ縮尺を保つ
+ */
+export function padToSize(img: RGBAImage, width: number, height: number): RGBAImage {
+  const W = Math.max(width, img.width)
+  const H = Math.max(height, img.height)
+  if (W === img.width && H === img.height) return img
+  const out = new Uint8ClampedArray(W * H * 4).fill(255)
+  for (let y = 0; y < img.height; y++) {
+    out.set(img.data.subarray(y * img.width * 4, (y + 1) * img.width * 4), y * W * 4)
+  }
+  return { data: out, width: W, height: H }
+}

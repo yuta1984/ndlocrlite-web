@@ -60,3 +60,15 @@ describe('image-ops', () => {
     expect(maxDiff).toBeLessThanOrEqual(3)
   })
 })
+
+describe('padToSize（領域OCR用の余白付け）', () => {
+  it('左上に元画像を置き、残りを白で埋める。縮小はしない', async () => {
+    const { padToSize } = await import('../../src/worker/image-ops')
+    const src = { data: new Uint8ClampedArray([10, 20, 30, 255, 40, 50, 60, 255]), width: 2, height: 1 }
+    const out = padToSize(src, 3, 2)
+    expect([out.width, out.height]).toEqual([3, 2])
+    expect(Array.from(out.data.slice(0, 8))).toEqual([10, 20, 30, 255, 40, 50, 60, 255])
+    expect(Array.from(out.data.slice(8, 12))).toEqual([255, 255, 255, 255])
+    expect(padToSize(src, 1, 1)).toBe(src)
+  })
+})

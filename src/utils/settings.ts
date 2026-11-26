@@ -17,6 +17,8 @@ export interface AppSettings {
   exportFormat: ExportFormat
   includeFileName: boolean
   ignoreNewlines: boolean
+  /** 画像ビューアの操作モード（'pan': ズーム・移動、'select': 領域選択） */
+  viewerMode: 'pan' | 'select'
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -27,6 +29,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   exportFormat: 'txt',
   includeFileName: false,
   ignoreNewlines: false,
+  viewerMode: 'pan',
 }
 
 const KEY = 'ndlocr-lite-web.settings'
