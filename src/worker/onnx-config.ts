@@ -1,32 +1,48 @@
 /**
- * ONNX Runtime Web 設定
- * Web Worker内での統一設定
+ * ONNX Runtime Web の実行時設定
  *
- * onnxruntime-web/wasm を使用（JSEP/WebGPU不要、CPU専用）
- * Viteの?url importでWASMのハッシュ付きURLを取得し、
- * CDN不要・COEP対応の同一オリジン配信を実現する
+ * Worker ごとに使う ORT ビルドが異なるため、ランタイムを注入できるようにしている
+ *   - recognition.worker / テスト: onnxruntime-web/wasm（CPU, 軽量）  … ./ort-wasm.ts
+ *   - ocr.worker（レイアウト検出）: onnxruntime-web/webgpu（WebGPU + WASM フォールバック）… ./ort-webgpu.ts
+ *
+ * LayoutDetector / TextRecognizer は getOrt() 経由で Tensor・InferenceSession を使う
  */
 
-import * as ort from 'onnxruntime-web/wasm'
-import wasmUrl from 'onnxruntime-web/ort-wasm-simd-threaded.wasm?url'
+import type * as OrtType from 'onnxruntime-web'
 
-function initializeONNX() {
-  // Viteがバンドルしたハッシュ付きURLを指定（CDN不要・COEP対応）
-  ort.env.wasm.wasmPaths = { wasm: wasmUrl }
+export type OrtModule = typeof OrtType
+export type ExecutionBackend = 'webgpu' | 'wasm'
 
-  // シングルスレッドで安定動作
-  ort.env.wasm.numThreads = 1
-  ort.env.logLevel = 'warning'
+let current: OrtModule | null = null
 
-  // Web Worker内ではプロキシワーカー不要
-  ort.env.wasm.proxy = false
+export function setOrt(ort: OrtModule) {
+  current = ort
+}
+
+export function getOrt(): OrtModule {
+  if (!current) throw new Error('ONNX Runtime is not configured (import ort-wasm or ort-webgpu first)')
+  return current
+}
+
+export const isNode = typeof self === 'undefined' && typeof process !== 'undefined' && !!process.versions?.node
+
+/** WebGPU が利用可能か（アダプタ取得まで確認） */
+export async function isWebGPUAvailable(): Promise<boolean> {
+  try {
+    const gpu = (globalThis.navigator as Navigator & { gpu?: { requestAdapter(): Promise<unknown> } })?.gpu
+    if (!gpu) return false
+    return !!(await gpu.requestAdapter())
+  } catch {
+    return false
+  }
 }
 
 export async function createSession(
-  modelData: ArrayBuffer,
-  options: Partial<ort.InferenceSession.SessionOptions> = {}
-): Promise<ort.InferenceSession> {
-  const defaultOptions: ort.InferenceSession.SessionOptions = {
+  modelData: ArrayBuffer | Uint8Array,
+  options: Partial<OrtType.InferenceSession.SessionOptions> = {}
+): Promise<OrtType.InferenceSession> {
+  const ort = getOrt()
+  const defaultOptions: OrtType.InferenceSession.SessionOptions = {
     executionProviders: ['wasm'],
     logSeverityLevel: 4,
     graphOptimizationLevel: 'basic',
@@ -34,16 +50,11 @@ export async function createSession(
     enableMemPattern: false,
     ...options,
   }
-
+  const data = modelData instanceof Uint8Array ? modelData : new Uint8Array(modelData)
   try {
-    const session = await ort.InferenceSession.create(modelData, defaultOptions)
-    return session
+    return await ort.InferenceSession.create(data, defaultOptions)
   } catch (error) {
     console.error('Failed to create ONNX session:', error)
     throw error
   }
 }
-
-initializeONNX()
-
-export { ort }

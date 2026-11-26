@@ -33,7 +33,11 @@ export function Footer({ lang, githubUrl = 'https://github.com/yuta1984/ndlocrli
             <a href="https://github.com/ndl-lab/ndlocr-lite" target="_blank" rel="noopener noreferrer">
               NDLOCR-Lite
             </a>{' '}
-            のWebブラウザ版です。OCRモデルはNDLOCR-Liteのものを使用しています。
+            のWebブラウザ版です。OCRモデルはNDLOCR-Lite v2のものを使用しています。レイアウト認識モデルのバックボーンにはDINOv3を蒸留したモデルが使われており、{' '}
+            <a href="https://github.com/facebookresearch/dinov3/blob/main/LICENSE.md" target="_blank" rel="noopener noreferrer">
+              DINOv3ライセンス
+            </a>
+            が適用されます。
           </span>
         ) : (
           <span className="footer-attribution-text">
@@ -41,7 +45,11 @@ export function Footer({ lang, githubUrl = 'https://github.com/yuta1984/ndlocrli
             <a href="https://github.com/ndl-lab/ndlocr-lite" target="_blank" rel="noopener noreferrer">
               NDLOCR-Lite
             </a>{' '}
-            developed by the National Diet Library of Japan (NDL Lab). OCR models are from NDLOCR-Lite.
+            developed by the National Diet Library of Japan (NDL Lab). OCR models are from NDLOCR-Lite v2. The layout model uses a backbone distilled from DINOv3 and is subject to the{' '}
+            <a href="https://github.com/facebookresearch/dinov3/blob/main/LICENSE.md" target="_blank" rel="noopener noreferrer">
+              DINOv3 License
+            </a>
+            .
           </span>
         )}
       </div>

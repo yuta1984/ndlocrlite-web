@@ -1,0 +1,84 @@
+[
+ {
+  "lines": [
+   "昭和26年度の研修",
+   "に引き続き"
+  ],
+  "joined": "昭和26年度の研修に引き続き",
+  "escaped": "昭和26年度の研修に引き続き \\*a\\* \\#1 \\[x\\]"
+ },
+ {
+  "lines": [
+   "This is a",
+   "pen."
+  ],
+  "joined": "This is a pen.",
+  "escaped": "This is a pen. \\*a\\* \\#1 \\[x\\]"
+ },
+ {
+  "lines": [
+   "Hello,",
+   "world"
+  ],
+  "joined": "Hello,world",
+  "escaped": "Hello,world \\*a\\* \\#1 \\[x\\]"
+ },
+ {
+  "lines": [
+   "(see",
+   "note)"
+  ],
+  "joined": "(see note)",
+  "escaped": "(see note) \\*a\\* \\#1 \\[x\\]"
+ },
+ {
+  "lines": [
+   "abc",
+   "「引用」"
+  ],
+  "joined": "abc「引用」",
+  "escaped": "abc「引用」 \\*a\\* \\#1 \\[x\\]"
+ },
+ {
+  "lines": [
+   "数値は100",
+   "200"
+  ],
+  "joined": "数値は100 200",
+  "escaped": "数値は100 200 \\*a\\* \\#1 \\[x\\]"
+ },
+ {
+  "lines": [
+   "end.",
+   "Next"
+  ],
+  "joined": "end.Next",
+  "escaped": "end.Next \\*a\\* \\#1 \\[x\\]"
+ },
+ {
+  "lines": [
+   " 前後 ",
+   "",
+   " 空白 "
+  ],
+  "joined": "前後空白",
+  "escaped": "前後空白 \\*a\\* \\#1 \\[x\\]"
+ },
+ {
+  "lines": [
+   "word-",
+   "break"
+  ],
+  "joined": "word-break",
+  "escaped": "word\\-break \\*a\\* \\#1 \\[x\\]"
+ },
+ {
+  "lines": [
+   "A",
+   "B",
+   "C"
+  ],
+  "joined": "A B C",
+  "escaped": "A B C \\*a\\* \\#1 \\[x\\]"
+ }
+]

@@ -1,0 +1,714 @@
+{
+  "contents": [
+    [
+      {
+        "boundingBox": [
+          [
+            740,
+            184
+          ],
+          [
+            740,
+            187
+          ],
+          [
+            752,
+            184
+          ],
+          [
+            752,
+            187
+          ]
+        ],
+        "id": 0,
+        "isVertical": "false",
+        "text": "-",
+        "isTextline": "true",
+        "confidence": 0.733,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            700,
+            110
+          ],
+          [
+            700,
+            575
+          ],
+          [
+            718,
+            110
+          ],
+          [
+            718,
+            575
+          ]
+        ],
+        "id": 1,
+        "isVertical": "true",
+        "text": "或日のことでございます。お釋迦樣は極樂の蓮池のふちを、獨りでぶらぶらお歩きになつ",
+        "isTextline": "true",
+        "confidence": 0.924,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            682,
+            99
+          ],
+          [
+            682,
+            219
+          ],
+          [
+            694,
+            99
+          ],
+          [
+            694,
+            219
+          ]
+        ],
+        "id": 2,
+        "isVertical": "true",
+        "text": "ていらつしやいました。",
+        "isTextline": "true",
+        "confidence": 0.933,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            654,
+            110
+          ],
+          [
+            654,
+            574
+          ],
+          [
+            670,
+            110
+          ],
+          [
+            670,
+            574
+          ]
+        ],
+        "id": 3,
+        "isVertical": "true",
+        "text": "池の中に咲いてゐる蓮の花は、みんな玉のやうにまつ白で、そのまん中にある金色の蕋か",
+        "isTextline": "true",
+        "confidence": 0.917,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            632,
+            98
+          ],
+          [
+            632,
+            464
+          ],
+          [
+            647,
+            98
+          ],
+          [
+            647,
+            464
+          ]
+        ],
+        "id": 4,
+        "isVertical": "true",
+        "text": "らは、何とも言へない好い句が、絶間なくあたりへ溢れて居りました。",
+        "isTextline": "true",
+        "confidence": 0.934,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            611,
+            109
+          ],
+          [
+            611,
+            265
+          ],
+          [
+            624,
+            109
+          ],
+          [
+            624,
+            265
+          ]
+        ],
+        "id": 5,
+        "isVertical": "true",
+        "text": "極樂は丁度朝でございました。",
+        "isTextline": "true",
+        "confidence": 0.879,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            584,
+            109
+          ],
+          [
+            584,
+            574
+          ],
+          [
+            599,
+            109
+          ],
+          [
+            599,
+            574
+          ]
+        ],
+        "id": 6,
+        "isVertical": "true",
+        "text": "やがてお釋迦樣はその池の縁にお佇みになつて、水の面を蔽つてゐる蓮の葉の間から、ふ",
+        "isTextline": "true",
+        "confidence": 0.912,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            564,
+            97
+          ],
+          [
+            564,
+            264
+          ],
+          [
+            576,
+            97
+          ],
+          [
+            576,
+            264
+          ]
+        ],
+        "id": 7,
+        "isVertical": "true",
+        "text": "と下の容子を御覽になりました。",
+        "isTextline": "true",
+        "confidence": 0.935,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            536,
+            109
+          ],
+          [
+            536,
+            574
+          ],
+          [
+            553,
+            109
+          ],
+          [
+            553,
+            574
+          ]
+        ],
+        "id": 8,
+        "isVertical": "true",
+        "text": "この極樂の蓮池の下は、丁度地獄の底に當つてをりますから、水晶のやうな水を透き徹し",
+        "isTextline": "true",
+        "confidence": 0.92,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            513,
+            98
+          ],
+          [
+            513,
+            575
+          ],
+          [
+            530,
+            98
+          ],
+          [
+            530,
+            575
+          ]
+        ],
+        "id": 9,
+        "isVertical": "true",
+        "text": "て、三途の河や針の山の景色が、まるで覗き眼鏡を見るやうに、はつきりと見えるのでござ",
+        "isTextline": "true",
+        "confidence": 0.923,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            495,
+            99
+          ],
+          [
+            495,
+            135
+          ],
+          [
+            506,
+            99
+          ],
+          [
+            506,
+            135
+          ]
+        ],
+        "id": 10,
+        "isVertical": "true",
+        "text": "います。",
+        "isTextline": "true",
+        "confidence": 0.933,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            466,
+            108
+          ],
+          [
+            466,
+            573
+          ],
+          [
+            482,
+            108
+          ],
+          [
+            482,
+            573
+          ]
+        ],
+        "id": 11,
+        "isVertical": "true",
+        "text": "するとその地獄の底に、槌陀多と云ふ男が一人、外の罪人と一しよに蠢いてゐる姿が、お",
+        "isTextline": "true",
+        "confidence": 0.921,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            448,
+            84
+          ],
+          [
+            448,
+            181
+          ],
+          [
+            459,
+            84
+          ],
+          [
+            459,
+            181
+          ]
+        ],
+        "id": 12,
+        "isVertical": "true",
+        "text": "\"眼に止りました。",
+        "isTextline": "true",
+        "confidence": 0.66,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            451,
+            78
+          ],
+          [
+            451,
+            86
+          ],
+          [
+            462,
+            78
+          ],
+          [
+            462,
+            86
+          ]
+        ],
+        "id": 13,
+        "isVertical": "false",
+        "text": "26",
+        "isTextline": "true",
+        "confidence": 0.354,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            380,
+            115
+          ],
+          [
+            380,
+            580
+          ],
+          [
+            396,
+            115
+          ],
+          [
+            396,
+            580
+          ]
+        ],
+        "id": 14,
+        "isVertical": "true",
+        "text": "この韃陀多といふ男は、人を殺したり、家に火をつけたり、いろいろ惡事を働いた大泥坊",
+        "isTextline": "true",
+        "confidence": 0.923,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            356,
+            103
+          ],
+          [
+            356,
+            573
+          ],
+          [
+            373,
+            103
+          ],
+          [
+            373,
+            573
+          ]
+        ],
+        "id": 15,
+        "isVertical": "true",
+        "text": "でございますが、それでもたつた一つ、善い事をした覺えがございます。と申しますのは、",
+        "isTextline": "true",
+        "confidence": 0.915,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            332,
+            103
+          ],
+          [
+            332,
+            581
+          ],
+          [
+            349,
+            103
+          ],
+          [
+            349,
+            581
+          ]
+        ],
+        "id": 16,
+        "isVertical": "true",
+        "text": "或時この男が深い林の中を通りますと、小さな蜘蛛が一匹、路ばたを這つて行くのが見えま",
+        "isTextline": "true",
+        "confidence": 0.922,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            310,
+            104
+          ],
+          [
+            310,
+            130
+          ],
+          [
+            320,
+            104
+          ],
+          [
+            320,
+            130
+          ]
+        ],
+        "id": 17,
+        "isVertical": "true",
+        "text": "した。",
+        "isTextline": "true",
+        "confidence": 0.927,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            285,
+            115
+          ],
+          [
+            285,
+            581
+          ],
+          [
+            301,
+            115
+          ],
+          [
+            301,
+            581
+          ]
+        ],
+        "id": 18,
+        "isVertical": "true",
+        "text": "そこで健陀多は早速足を擧げて、踏み殺さうと致しましたが、「いや、いや、これも小さい",
+        "isTextline": "true",
+        "confidence": 0.893,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            262,
+            104
+          ],
+          [
+            262,
+            582
+          ],
+          [
+            278,
+            104
+          ],
+          [
+            278,
+            582
+          ]
+        ],
+        "id": 19,
+        "isVertical": "true",
+        "text": "ながら、命のあるものに違ひない。その命を無暗にとるといふ事は、いくら何でも可哀さう",
+        "isTextline": "true",
+        "confidence": 0.934,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            238,
+            104
+          ],
+          [
+            238,
+            517
+          ],
+          [
+            254,
+            104
+          ],
+          [
+            254,
+            517
+          ]
+        ],
+        "id": 20,
+        "isVertical": "true",
+        "text": "だ。」と、かう急に思ひ返して、たうとうその蜘蛛を殺さずに助けてやりました。",
+        "isTextline": "true",
+        "confidence": 0.937,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            215,
+            117
+          ],
+          [
+            215,
+            582
+          ],
+          [
+            231,
+            117
+          ],
+          [
+            231,
+            582
+          ]
+        ],
+        "id": 21,
+        "isVertical": "true",
+        "text": "お釋迦樣は地獄の容子を御覽になりながら、この健陀多には蜘蛛を助けた事があるのを御",
+        "isTextline": "true",
+        "confidence": 0.908,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            192,
+            104
+          ],
+          [
+            192,
+            583
+          ],
+          [
+            207,
+            104
+          ],
+          [
+            207,
+            583
+          ]
+        ],
+        "id": 22,
+        "isVertical": "true",
+        "text": "思ひ出しになりました。さうしてそれだけの善い事をした報には、出來るならこの男を地獄",
+        "isTextline": "true",
+        "confidence": 0.895,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            168,
+            105
+          ],
+          [
+            168,
+            583
+          ],
+          [
+            185,
+            105
+          ],
+          [
+            185,
+            583
+          ]
+        ],
+        "id": 23,
+        "isVertical": "true",
+        "text": "から救ひ出してやらうとお考へになりました。幸側を御覽になりますと、翡翠のやうな色",
+        "isTextline": "true",
+        "confidence": 0.906,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            145,
+            106
+          ],
+          [
+            145,
+            518
+          ],
+          [
+            160,
+            106
+          ],
+          [
+            160,
+            518
+          ]
+        ],
+        "id": 24,
+        "isVertical": "true",
+        "text": "をした蓮の葉の上に、極樂の蜘蛛が一匹、美しい銀色の絲をかけてをりました。",
+        "isTextline": "true",
+        "confidence": 0.933,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            121,
+            118
+          ],
+          [
+            121,
+            582
+          ],
+          [
+            137,
+            118
+          ],
+          [
+            137,
+            582
+          ]
+        ],
+        "id": 25,
+        "isVertical": "true",
+        "text": "お釋迦樣はその蜘蛛の絲を、そつとお手にお取りになりました。さうして、それを、玉の",
+        "isTextline": "true",
+        "confidence": 0.922,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            98,
+            106
+          ],
+          [
+            98,
+            519
+          ],
+          [
+            113,
+            106
+          ],
+          [
+            113,
+            519
+          ]
+        ],
+        "id": 26,
+        "isVertical": "true",
+        "text": "やうな白蓮の間から、遙か下にある地獄の底へまつすぐにお下しなさいました。",
+        "isTextline": "true",
+        "confidence": 0.934,
+        "class_index": 1
+      }
+    ]
+  ],
+  "imginfo": {
+    "img_width": 854,
+    "img_height": 642,
+    "img_path": "/private/tmp/claude-501/-Users-yuta-nmjh-Dropbox-Yuta-Hashimoto-work-ndlocrlite-web/5908c273-7d74-40ae-893a-3b953a938c46/scratchpad/ref_in/kumonoito.png",
+    "img_name": "kumonoito.png"
+  }
+}

@@ -1,73 +1,40 @@
 /**
  * 認識専用 Web Worker
- * rec30 / rec50 / rec100 の3モデルを保持し、charCountCategory に応じて使い分ける
+ * rec30 / rec50 / rec100 の3モデルを保持し、メインスレッドから指定されたモデルで認識する
  */
 
-import './onnx-config'
-import { loadModel } from './model-loader'
-import { TextRecognizer } from './text-recognizer'
+import './ort-wasm'
+import { RecognizerSet } from './recognizer-set'
 import type { RecWorkerInMessage, RecWorkerOutMessage } from '../types/recognition-worker'
 
-let rec30: TextRecognizer | null = null
-let rec50: TextRecognizer | null = null
-let rec100: TextRecognizer | null = null
-let singleModelMode = false
+let recognizers: RecognizerSet | null = null
 
-function selectRecognizer(_charCountCategory?: number): TextRecognizer {
-  if (singleModelMode) return rec100!
-  if (_charCountCategory === 3) return rec30!
-  if (_charCountCategory === 2) return rec50!
-  return rec100!
-}
+const post = (msg: RecWorkerOutMessage) => self.postMessage(msg)
 
 self.onmessage = async (e: MessageEvent<RecWorkerInMessage>) => {
   const msg = e.data
 
   if (msg.type === 'REC_INIT') {
-    singleModelMode = msg.singleModel ?? false
     try {
-      if (singleModelMode) {
-        const d100 = await loadModel('recognition100', (p) => {
-          self.postMessage({ type: 'REC_PROGRESS', progress: p } satisfies RecWorkerOutMessage)
-        })
-        rec100 = new TextRecognizer([1, 3, 24, 768]); await rec100.initialize(d100)
-      } else {
-        const progresses = [0, 0, 0]
-        const reportProgress = () => {
-          const avg = (progresses[0] + progresses[1] + progresses[2]) / 3
-          self.postMessage({ type: 'REC_PROGRESS', progress: avg } satisfies RecWorkerOutMessage)
-        }
-
-        const [d30, d50, d100] = await Promise.all([
-          loadModel('recognition30',  (p) => { progresses[0] = p; reportProgress() }),
-          loadModel('recognition50',  (p) => { progresses[1] = p; reportProgress() }),
-          loadModel('recognition100', (p) => { progresses[2] = p; reportProgress() }),
-        ])
-
-        rec30  = new TextRecognizer([1, 3, 24, 256]); await rec30.initialize(d30)
-        rec50  = new TextRecognizer([1, 3, 24, 384]); await rec50.initialize(d50)
-        rec100 = new TextRecognizer([1, 3, 24, 768]); await rec100.initialize(d100)
-      }
-
-      self.postMessage({ type: 'REC_READY' } satisfies RecWorkerOutMessage)
+      recognizers = new RecognizerSet(msg.singleModel ?? false)
+      await recognizers.load((model, progress) => post({ type: 'REC_PROGRESS', model, progress }))
+      post({ type: 'REC_READY' })
     } catch (err) {
-      self.postMessage({ type: 'REC_ERROR', error: (err as Error).message } satisfies RecWorkerOutMessage)
+      post({ type: 'REC_ERROR', error: (err as Error).message })
     }
   } else if (msg.type === 'REC_PROCESS') {
     try {
-      const results: Array<{ id: number; text: string; confidence: number }> = []
+      const results: Array<{ id: number; text: string }> = []
       for (const job of msg.jobs) {
-        const r = await selectRecognizer(job.charCountCategory).recognizeCropped(job.croppedImageData)
-        results.push({ id: job.id, text: r.text, confidence: r.confidence })
+        const text = await recognizers!.recognize(job.model, job.image)
+        results.push({ id: job.id, text })
       }
-      self.postMessage({ type: 'REC_COMPLETE', results } satisfies RecWorkerOutMessage)
+      post({ type: 'REC_COMPLETE', batchId: msg.batchId, results })
     } catch (err) {
-      self.postMessage({ type: 'REC_ERROR', error: (err as Error).message } satisfies RecWorkerOutMessage)
+      post({ type: 'REC_ERROR', batchId: msg.batchId, error: (err as Error).message })
     }
   } else if (msg.type === 'REC_TERMINATE') {
-    rec30?.dispose()
-    rec50?.dispose()
-    rec100?.dispose()
+    recognizers?.dispose()
     self.close()
   }
 }

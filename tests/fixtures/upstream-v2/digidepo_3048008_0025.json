@@ -1,0 +1,3574 @@
+{
+  "contents": [
+    [
+      {
+        "boundingBox": [
+          [
+            415,
+            245
+          ],
+          [
+            415,
+            279
+          ],
+          [
+            864,
+            245
+          ],
+          [
+            864,
+            279
+          ]
+        ],
+        "id": 0,
+        "isVertical": "false",
+        "text": "第8章職員、庁舎、財政、記念行事等",
+        "isTextline": "true",
+        "confidence": 0.938,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            560,
+            346
+          ],
+          [
+            560,
+            367
+          ],
+          [
+            715,
+            346
+          ],
+          [
+            715,
+            367
+          ]
+        ],
+        "id": 1,
+        "isVertical": "false",
+        "text": "1.職員",
+        "isTextline": "true",
+        "confidence": 0.929,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            346,
+            420
+          ],
+          [
+            346,
+            437
+          ],
+          [
+            505,
+            420
+          ],
+          [
+            505,
+            437
+          ]
+        ],
+        "id": 2,
+        "isVertical": "false",
+        "text": "A.司書職員の研修",
+        "isTextline": "true",
+        "confidence": 0.935,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            345,
+            451
+          ],
+          [
+            345,
+            474
+          ],
+          [
+            956,
+            451
+          ],
+          [
+            956,
+            474
+          ]
+        ],
+        "id": 3,
+        "isVertical": "false",
+        "text": "昭和26年度(第4回)研修に引続き、昭和27年度(第5回)司書職員研修",
+        "isTextline": "true",
+        "confidence": 0.945,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            329,
+            487
+          ],
+          [
+            329,
+            508
+          ],
+          [
+            943,
+            487
+          ],
+          [
+            943,
+            508
+          ]
+        ],
+        "id": 4,
+        "isVertical": "false",
+        "text": "を27年6月2日から28年4月10日まで320時間、研修生50名に実施した。",
+        "isTextline": "true",
+        "confidence": 0.94,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            329,
+            523
+          ],
+          [
+            329,
+            545
+          ],
+          [
+            952,
+            523
+          ],
+          [
+            952,
+            545
+          ]
+        ],
+        "id": 5,
+        "isVertical": "false",
+        "text": "本年度は、東京学芸大学の協力を得て、講師は、本館職員が專門分野の科目を",
+        "isTextline": "true",
+        "confidence": 0.942,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            327,
+            558
+          ],
+          [
+            327,
+            580
+          ],
+          [
+            952,
+            558
+          ],
+          [
+            952,
+            580
+          ]
+        ],
+        "id": 6,
+        "isVertical": "false",
+        "text": "担当した外、東京学芸大学の教授が担当した。本年度も單位科目ごとに試験を",
+        "isTextline": "true",
+        "confidence": 0.932,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            327,
+            594
+          ],
+          [
+            327,
+            616
+          ],
+          [
+            953,
+            594
+          ],
+          [
+            953,
+            616
+          ]
+        ],
+        "id": 7,
+        "isVertical": "false",
+        "text": "実施し、必修科目(11単位)選択科目(4單位)合わせて15単位以上の試験",
+        "isTextline": "true",
+        "confidence": 0.937,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            327,
+            634
+          ],
+          [
+            327,
+            650
+          ],
+          [
+            554,
+            634
+          ],
+          [
+            554,
+            650
+          ]
+        ],
+        "id": 8,
+        "isVertical": "false",
+        "text": "に合格した43名が修了した。",
+        "isTextline": "true",
+        "confidence": 0.921,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            345,
+            666
+          ],
+          [
+            345,
+            686
+          ],
+          [
+            953,
+            666
+          ],
+          [
+            953,
+            686
+          ]
+        ],
+        "id": 9,
+        "isVertical": "false",
+        "text": "研修の單位科目、講師等は、附表第5表国立国会図書館司書職員研修課程",
+        "isTextline": "true",
+        "confidence": 0.935,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            328,
+            706
+          ],
+          [
+            328,
+            722
+          ],
+          [
+            492,
+            706
+          ],
+          [
+            492,
+            722
+          ]
+        ],
+        "id": 10,
+        "isVertical": "false",
+        "text": "一覽表の通りである。",
+        "isTextline": "true",
+        "confidence": 0.904,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            344,
+            741
+          ],
+          [
+            344,
+            757
+          ],
+          [
+            505,
+            741
+          ],
+          [
+            505,
+            757
+          ]
+        ],
+        "id": 11,
+        "isVertical": "false",
+        "text": "B.職員の健康管理",
+        "isTextline": "true",
+        "confidence": 0.936,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            345,
+            773
+          ],
+          [
+            345,
+            792
+          ],
+          [
+            952,
+            773
+          ],
+          [
+            952,
+            792
+          ]
+        ],
+        "id": 12,
+        "isVertical": "false",
+        "text": "毎週定日に医師を招いて職員の健康相談を行い、疾病の早期発見とその治療",
+        "isTextline": "true",
+        "confidence": 0.941,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            327,
+            809
+          ],
+          [
+            327,
+            828
+          ],
+          [
+            951,
+            809
+          ],
+          [
+            951,
+            828
+          ]
+        ],
+        "id": 13,
+        "isVertical": "false",
+        "text": "に努めたことは前年度と同様である。この年度に処理した傷病者の延人数は",
+        "isTextline": "true",
+        "confidence": 0.933,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            325,
+            846
+          ],
+          [
+            325,
+            861
+          ],
+          [
+            473,
+            846
+          ],
+          [
+            473,
+            861
+          ]
+        ],
+        "id": 14,
+        "isVertical": "false",
+        "text": "4,913名に達した。",
+        "isTextline": "true",
+        "confidence": 0.913,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            343,
+            878
+          ],
+          [
+            343,
+            896
+          ],
+          [
+            953,
+            878
+          ],
+          [
+            953,
+            896
+          ]
+        ],
+        "id": 15,
+        "isVertical": "false",
+        "text": "6月に職員の定期健康診断を実施し、職員総数の99%にあたる559名を檢診",
+        "isTextline": "true",
+        "confidence": 0.932,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            329,
+            914
+          ],
+          [
+            329,
+            932
+          ],
+          [
+            953,
+            914
+          ],
+          [
+            953,
+            932
+          ]
+        ],
+        "id": 16,
+        "isVertical": "false",
+        "text": "し、その際発見された結核罹患職員51名については、健康相談医が療養指導",
+        "isTextline": "true",
+        "confidence": 0.928,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            328,
+            950
+          ],
+          [
+            328,
+            968
+          ],
+          [
+            953,
+            950
+          ],
+          [
+            953,
+            968
+          ]
+        ],
+        "id": 17,
+        "isVertical": "false",
+        "text": "を行うとともに、これら職員の勤務を軽減し、あるいは休養を与える等健康恢",
+        "isTextline": "true",
+        "confidence": 0.937,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            326,
+            987
+          ],
+          [
+            326,
+            1004
+          ],
+          [
+            544,
+            987
+          ],
+          [
+            544,
+            1004
+          ]
+        ],
+        "id": 18,
+        "isVertical": "false",
+        "text": "復に必要な措置を実施した。",
+        "isTextline": "true",
+        "confidence": 0.924,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            345,
+            1022
+          ],
+          [
+            345,
+            1039
+          ],
+          [
+            953,
+            1022
+          ],
+          [
+            953,
+            1039
+          ]
+        ],
+        "id": 19,
+        "isVertical": "false",
+        "text": "予防接種法に基いて、6月には腸チフス、バラチフスの予防接種を全員に実",
+        "isTextline": "true",
+        "confidence": 0.93,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            326,
+            1059
+          ],
+          [
+            326,
+            1074
+          ],
+          [
+            385,
+            1059
+          ],
+          [
+            385,
+            1074
+          ]
+        ],
+        "id": 20,
+        "isVertical": "false",
+        "text": "施した。",
+        "isTextline": "true",
+        "confidence": 0.88,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            344,
+            1094
+          ],
+          [
+            344,
+            1111
+          ],
+          [
+            594,
+            1094
+          ],
+          [
+            594,
+            1111
+          ]
+        ],
+        "id": 21,
+        "isVertical": "false",
+        "text": "C.職員の共済組合の利用状況",
+        "isTextline": "true",
+        "confidence": 0.93,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            348,
+            1129
+          ],
+          [
+            348,
+            1146
+          ],
+          [
+            952,
+            1129
+          ],
+          [
+            952,
+            1146
+          ]
+        ],
+        "id": 22,
+        "isVertical": "false",
+        "text": "この年度における本館職員の共済組合療養費その他の給付の利用者は、その",
+        "isTextline": "true",
+        "confidence": 0.935,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            330,
+            1164
+          ],
+          [
+            330,
+            1182
+          ],
+          [
+            953,
+            1164
+          ],
+          [
+            953,
+            1182
+          ]
+        ],
+        "id": 23,
+        "isVertical": "false",
+        "text": "家族を含め延べ4,142人、給付金は総計3,278,677円であつた。前年度の利用",
+        "isTextline": "true",
+        "confidence": 0.937,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1108,
+            189
+          ],
+          [
+            1108,
+            215
+          ],
+          [
+            1736,
+            189
+          ],
+          [
+            1736,
+            215
+          ]
+        ],
+        "id": 24,
+        "isVertical": "false",
+        "text": "延人員668人、給付金総計508,196円に比べれば、利用者、給付金ともに6倍",
+        "isTextline": "true",
+        "confidence": 0.947,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1108,
+            226
+          ],
+          [
+            1108,
+            251
+          ],
+          [
+            1736,
+            226
+          ],
+          [
+            1736,
+            251
+          ]
+        ],
+        "id": 25,
+        "isVertical": "false",
+        "text": "を越す激増を示した。利用者及び療養費その他の給付額を科目別に示せば次表",
+        "isTextline": "true",
+        "confidence": 0.941,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1108,
+            261
+          ],
+          [
+            1108,
+            278
+          ],
+          [
+            1220,
+            261
+          ],
+          [
+            1220,
+            278
+          ]
+        ],
+        "id": 26,
+        "isVertical": "false",
+        "text": "の通りである。",
+        "isTextline": "true",
+        "confidence": 0.908,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1259,
+            300
+          ],
+          [
+            1259,
+            320
+          ],
+          [
+            1583,
+            300
+          ],
+          [
+            1583,
+            320
+          ]
+        ],
+        "id": 27,
+        "isVertical": "false",
+        "text": "療養費その他支給額調書(昭和27年度)",
+        "isTextline": "true",
+        "confidence": 0.936,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1118,
+            731
+          ],
+          [
+            1118,
+            753
+          ],
+          [
+            1729,
+            731
+          ],
+          [
+            1729,
+            753
+          ]
+        ],
+        "id": 28,
+        "isVertical": "false",
+        "text": "甲種組合員に対する長期給付は退職者及び甲種組合員から乙種組合員になつ",
+        "isTextline": "true",
+        "confidence": 0.933,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1100,
+            767
+          ],
+          [
+            1100,
+            785
+          ],
+          [
+            1341,
+            767
+          ],
+          [
+            1341,
+            785
+          ]
+        ],
+        "id": 29,
+        "isVertical": "false",
+        "text": "た者を合わせ48件であつた。",
+        "isTextline": "true",
+        "confidence": 0.92,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1114,
+            803
+          ],
+          [
+            1114,
+            825
+          ],
+          [
+            1727,
+            803
+          ],
+          [
+            1727,
+            825
+          ]
+        ],
+        "id": 30,
+        "isVertical": "false",
+        "text": "組合員に対する共済組合貸付金は、この年度内の貸付2,544,790円、前年度",
+        "isTextline": "true",
+        "confidence": 0.937,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1098,
+            839
+          ],
+          [
+            1098,
+            860
+          ],
+          [
+            1727,
+            839
+          ],
+          [
+            1727,
+            860
+          ]
+        ],
+        "id": 31,
+        "isVertical": "false",
+        "text": "からの貸付繰越金が744,950円であつた。このうち年度内返済額が2,410,590",
+        "isTextline": "true",
+        "confidence": 0.937,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1096,
+            875
+          ],
+          [
+            1096,
+            897
+          ],
+          [
+            1726,
+            875
+          ],
+          [
+            1726,
+            897
+          ]
+        ],
+        "id": 32,
+        "isVertical": "false",
+        "text": "円で879,150円が翌年度に繰越された。これを前年度に比べれば、年度内貸付",
+        "isTextline": "true",
+        "confidence": 0.945,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1095,
+            910
+          ],
+          [
+            1095,
+            931
+          ],
+          [
+            1591,
+            910
+          ],
+          [
+            1591,
+            931
+          ]
+        ],
+        "id": 33,
+        "isVertical": "false",
+        "text": "金額において約600,000円増加した外大きな変化はなかつた。",
+        "isTextline": "true",
+        "confidence": 0.932,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1114,
+            947
+          ],
+          [
+            1114,
+            968
+          ],
+          [
+            1724,
+            947
+          ],
+          [
+            1724,
+            968
+          ]
+        ],
+        "id": 34,
+        "isVertical": "false",
+        "text": "以上の外、病院への入院、療養所、宿泊所の利用等、厚生施設の利用者も相",
+        "isTextline": "true",
+        "confidence": 0.946,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1097,
+            982
+          ],
+          [
+            1097,
+            999
+          ],
+          [
+            1245,
+            982
+          ],
+          [
+            1245,
+            999
+          ]
+        ],
+        "id": 35,
+        "isVertical": "false",
+        "text": "当の多数に上つた。",
+        "isTextline": "true",
+        "confidence": 0.875,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1111,
+            1018
+          ],
+          [
+            1111,
+            1035
+          ],
+          [
+            1347,
+            1018
+          ],
+          [
+            1347,
+            1035
+          ]
+        ],
+        "id": 36,
+        "isVertical": "false",
+        "text": "D.職員のレクリエーション",
+        "isTextline": "true",
+        "confidence": 0.928,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1110,
+            1053
+          ],
+          [
+            1110,
+            1075
+          ],
+          [
+            1722,
+            1053
+          ],
+          [
+            1722,
+            1075
+          ]
+        ],
+        "id": 37,
+        "isVertical": "false",
+        "text": "昭和27年度における職員のレタリエーシンとして、次の通り海の家の開",
+        "isTextline": "true",
+        "confidence": 0.934,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1092,
+            1089
+          ],
+          [
+            1092,
+            1109
+          ],
+          [
+            1510,
+            1089
+          ],
+          [
+            1510,
+            1109
+          ]
+        ],
+        "id": 38,
+        "isVertical": "false",
+        "text": "設、運動会、文化祭、映画会(16mm)等を行つた。",
+        "isTextline": "true",
+        "confidence": 0.922,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1109,
+            1125
+          ],
+          [
+            1109,
+            1147
+          ],
+          [
+            1718,
+            1125
+          ],
+          [
+            1718,
+            1147
+          ]
+        ],
+        "id": 39,
+        "isVertical": "false",
+        "text": "海の家7月1日から8月31日までの2箇月間、神奈川縣逗子町に「海の",
+        "isTextline": "true",
+        "confidence": 0.943,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1090,
+            1161
+          ],
+          [
+            1090,
+            1183
+          ],
+          [
+            1718,
+            1161
+          ],
+          [
+            1718,
+            1183
+          ]
+        ],
+        "id": 40,
+        "isVertical": "false",
+        "text": "家」を開設した。利用者は職員及びその家族であり、宿泊利用者323名、日帰",
+        "isTextline": "true",
+        "confidence": 0.945,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1124,
+            352
+          ],
+          [
+            1124,
+            383
+          ],
+          [
+            1234,
+            352
+          ],
+          [
+            1234,
+            383
+          ]
+        ],
+        "id": 41,
+        "isVertical": "false",
+        "text": "科 目",
+        "isTextline": "true",
+        "confidence": 0.793,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1098,
+            421
+          ],
+          [
+            1098,
+            548
+          ],
+          [
+            1132,
+            421
+          ],
+          [
+            1132,
+            548
+          ]
+        ],
+        "id": 42,
+        "isVertical": "true",
+        "text": "保健給付",
+        "isTextline": "true",
+        "confidence": 0.394,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1131,
+            517
+          ],
+          [
+            1131,
+            548
+          ],
+          [
+            1254,
+            517
+          ],
+          [
+            1254,
+            548
+          ]
+        ],
+        "id": 43,
+        "isVertical": "false",
+        "text": "産婦人科",
+        "isTextline": "true",
+        "confidence": 0.768,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1131,
+            541
+          ],
+          [
+            1131,
+            572
+          ],
+          [
+            1254,
+            541
+          ],
+          [
+            1254,
+            572
+          ]
+        ],
+        "id": 44,
+        "isVertical": "false",
+        "text": "歯 科",
+        "isTextline": "true",
+        "confidence": 0.66,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1130,
+            492
+          ],
+          [
+            1130,
+            527
+          ],
+          [
+            1255,
+            492
+          ],
+          [
+            1255,
+            527
+          ]
+        ],
+        "id": 45,
+        "isVertical": "false",
+        "text": "皮膚科",
+        "isTextline": "true",
+        "confidence": 0.665,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1129,
+            445
+          ],
+          [
+            1129,
+            483
+          ],
+          [
+            1257,
+            445
+          ],
+          [
+            1257,
+            483
+          ]
+        ],
+        "id": 46,
+        "isVertical": "false",
+        "text": "耳鼻科",
+        "isTextline": "true",
+        "confidence": 0.607,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1129,
+            468
+          ],
+          [
+            1129,
+            505
+          ],
+          [
+            1257,
+            468
+          ],
+          [
+            1257,
+            505
+          ]
+        ],
+        "id": 47,
+        "isVertical": "false",
+        "text": "眼科",
+        "isTextline": "true",
+        "confidence": 0.504,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1128,
+            401
+          ],
+          [
+            1128,
+            435
+          ],
+          [
+            1258,
+            401
+          ],
+          [
+            1258,
+            435
+          ]
+        ],
+        "id": 48,
+        "isVertical": "false",
+        "text": "内科",
+        "isTextline": "true",
+        "confidence": 0.493,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1124,
+            421
+          ],
+          [
+            1124,
+            458
+          ],
+          [
+            1259,
+            421
+          ],
+          [
+            1259,
+            458
+          ]
+        ],
+        "id": 49,
+        "isVertical": "false",
+        "text": "外科",
+        "isTextline": "true",
+        "confidence": 0.362,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1283,
+            338
+          ],
+          [
+            1283,
+            367
+          ],
+          [
+            1394,
+            338
+          ],
+          [
+            1394,
+            367
+          ]
+        ],
+        "id": 50,
+        "isVertical": "false",
+        "text": "組合員",
+        "isTextline": "true",
+        "confidence": 0.874,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1263,
+            372
+          ],
+          [
+            1263,
+            398
+          ],
+          [
+            1309,
+            372
+          ],
+          [
+            1309,
+            398
+          ]
+        ],
+        "id": 51,
+        "isVertical": "false",
+        "text": "(19)",
+        "isTextline": "true",
+        "confidence": 0.812,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1318,
+            372
+          ],
+          [
+            1318,
+            399
+          ],
+          [
+            1409,
+            372
+          ],
+          [
+            1409,
+            399
+          ]
+        ],
+        "id": 52,
+        "isVertical": "false",
+        "text": "給付金額",
+        "isTextline": "true",
+        "confidence": 0.874,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1280,
+            522
+          ],
+          [
+            1280,
+            546
+          ],
+          [
+            1310,
+            522
+          ],
+          [
+            1310,
+            546
+          ]
+        ],
+        "id": 53,
+        "isVertical": "false",
+        "text": "16",
+        "isTextline": "true",
+        "confidence": 0.76,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1277,
+            428
+          ],
+          [
+            1277,
+            452
+          ],
+          [
+            1310,
+            428
+          ],
+          [
+            1310,
+            452
+          ]
+        ],
+        "id": 54,
+        "isVertical": "false",
+        "text": "108",
+        "isTextline": "true",
+        "confidence": 0.806,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1277,
+            451
+          ],
+          [
+            1277,
+            476
+          ],
+          [
+            1310,
+            451
+          ],
+          [
+            1310,
+            476
+          ]
+        ],
+        "id": 55,
+        "isVertical": "false",
+        "text": "183",
+        "isTextline": "true",
+        "confidence": 0.798,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1276,
+            498
+          ],
+          [
+            1276,
+            522
+          ],
+          [
+            1309,
+            498
+          ],
+          [
+            1309,
+            522
+          ]
+        ],
+        "id": 56,
+        "isVertical": "false",
+        "text": "138",
+        "isTextline": "true",
+        "confidence": 0.813,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1275,
+            405
+          ],
+          [
+            1275,
+            430
+          ],
+          [
+            1310,
+            405
+          ],
+          [
+            1310,
+            430
+          ]
+        ],
+        "id": 57,
+        "isVertical": "false",
+        "text": "885",
+        "isTextline": "true",
+        "confidence": 0.77,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1275,
+            475
+          ],
+          [
+            1275,
+            500
+          ],
+          [
+            1310,
+            475
+          ],
+          [
+            1310,
+            500
+          ]
+        ],
+        "id": 58,
+        "isVertical": "false",
+        "text": "112",
+        "isTextline": "true",
+        "confidence": 0.794,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1274,
+            544
+          ],
+          [
+            1274,
+            568
+          ],
+          [
+            1310,
+            544
+          ],
+          [
+            1310,
+            568
+          ]
+        ],
+        "id": 59,
+        "isVertical": "false",
+        "text": "596",
+        "isTextline": "true",
+        "confidence": 0.791,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1317,
+            405
+          ],
+          [
+            1317,
+            431
+          ],
+          [
+            1416,
+            405
+          ],
+          [
+            1416,
+            431
+          ]
+        ],
+        "id": 60,
+        "isVertical": "false",
+        "text": "1.124,902.43",
+        "isTextline": "true",
+        "confidence": 0.852,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1338,
+            499
+          ],
+          [
+            1338,
+            525
+          ],
+          [
+            1417,
+            499
+          ],
+          [
+            1417,
+            525
+          ]
+        ],
+        "id": 61,
+        "isVertical": "false",
+        "text": "65,010.75",
+        "isTextline": "true",
+        "confidence": 0.873,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1337,
+            476
+          ],
+          [
+            1337,
+            501
+          ],
+          [
+            1418,
+            476
+          ],
+          [
+            1418,
+            501
+          ]
+        ],
+        "id": 62,
+        "isVertical": "false",
+        "text": "54,998.75",
+        "isTextline": "true",
+        "confidence": 0.869,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1337,
+            522
+          ],
+          [
+            1337,
+            547
+          ],
+          [
+            1417,
+            522
+          ],
+          [
+            1417,
+            547
+          ]
+        ],
+        "id": 63,
+        "isVertical": "false",
+        "text": "20,901.50",
+        "isTextline": "true",
+        "confidence": 0.878,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1333,
+            452
+          ],
+          [
+            1333,
+            478
+          ],
+          [
+            1417,
+            452
+          ],
+          [
+            1417,
+            478
+          ]
+        ],
+        "id": 64,
+        "isVertical": "false",
+        "text": "127,354.50",
+        "isTextline": "true",
+        "confidence": 0.873,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1332,
+            545
+          ],
+          [
+            1332,
+            571
+          ],
+          [
+            1416,
+            545
+          ],
+          [
+            1416,
+            571
+          ]
+        ],
+        "id": 65,
+        "isVertical": "false",
+        "text": "565,691.50",
+        "isTextline": "true",
+        "confidence": 0.864,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1331,
+            429
+          ],
+          [
+            1331,
+            454
+          ],
+          [
+            1417,
+            429
+          ],
+          [
+            1417,
+            454
+          ]
+        ],
+        "id": 66,
+        "isVertical": "false",
+        "text": "103,971.00",
+        "isTextline": "true",
+        "confidence": 0.864,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1097,
+            580
+          ],
+          [
+            1097,
+            666
+          ],
+          [
+            1130,
+            580
+          ],
+          [
+            1130,
+            666
+          ]
+        ],
+        "id": 67,
+        "isVertical": "true",
+        "text": "諸手当",
+        "isTextline": "true",
+        "confidence": 0.573,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1131,
+            575
+          ],
+          [
+            1131,
+            607
+          ],
+          [
+            1255,
+            575
+          ],
+          [
+            1255,
+            607
+          ]
+        ],
+        "id": 68,
+        "isVertical": "false",
+        "text": "分 娩 費",
+        "isTextline": "true",
+        "confidence": 0.768,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1131,
+            599
+          ],
+          [
+            1131,
+            629
+          ],
+          [
+            1254,
+            599
+          ],
+          [
+            1254,
+            629
+          ]
+        ],
+        "id": 69,
+        "isVertical": "false",
+        "text": "哺育手当",
+        "isTextline": "true",
+        "confidence": 0.736,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1129,
+            620
+          ],
+          [
+            1129,
+            653
+          ],
+          [
+            1254,
+            620
+          ],
+          [
+            1254,
+            653
+          ]
+        ],
+        "id": 70,
+        "isVertical": "false",
+        "text": "埋葬料",
+        "isTextline": "true",
+        "confidence": 0.667,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1129,
+            642
+          ],
+          [
+            1129,
+            676
+          ],
+          [
+            1254,
+            642
+          ],
+          [
+            1254,
+            676
+          ]
+        ],
+        "id": 71,
+        "isVertical": "false",
+        "text": "その他",
+        "isTextline": "true",
+        "confidence": 0.649,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1288,
+            580
+          ],
+          [
+            1288,
+            604
+          ],
+          [
+            1310,
+            580
+          ],
+          [
+            1310,
+            604
+          ]
+        ],
+        "id": 72,
+        "isVertical": "true",
+        "text": "2",
+        "isTextline": "true",
+        "confidence": 0.752,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1288,
+            602
+          ],
+          [
+            1288,
+            627
+          ],
+          [
+            1310,
+            602
+          ],
+          [
+            1310,
+            627
+          ]
+        ],
+        "id": 73,
+        "isVertical": "true",
+        "text": "00",
+        "isTextline": "true",
+        "confidence": 0.761,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1287,
+            626
+          ],
+          [
+            1287,
+            649
+          ],
+          [
+            1309,
+            626
+          ],
+          [
+            1309,
+            649
+          ]
+        ],
+        "id": 74,
+        "isVertical": "true",
+        "text": "-",
+        "isTextline": "true",
+        "confidence": 0.684,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1282,
+            648
+          ],
+          [
+            1282,
+            673
+          ],
+          [
+            1310,
+            648
+          ],
+          [
+            1310,
+            673
+          ]
+        ],
+        "id": 75,
+        "isVertical": "false",
+        "text": "150",
+        "isTextline": "true",
+        "confidence": 0.712,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1342,
+            603
+          ],
+          [
+            1342,
+            628
+          ],
+          [
+            1415,
+            603
+          ],
+          [
+            1415,
+            628
+          ]
+        ],
+        "id": 76,
+        "isVertical": "false",
+        "text": "4,800.00",
+        "isTextline": "true",
+        "confidence": 0.864,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1340,
+            579
+          ],
+          [
+            1340,
+            605
+          ],
+          [
+            1415,
+            579
+          ],
+          [
+            1415,
+            605
+          ]
+        ],
+        "id": 77,
+        "isVertical": "false",
+        "text": "17,900.00",
+        "isTextline": "true",
+        "confidence": 0.866,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1338,
+            626
+          ],
+          [
+            1338,
+            651
+          ],
+          [
+            1415,
+            626
+          ],
+          [
+            1415,
+            651
+          ]
+        ],
+        "id": 78,
+        "isVertical": "false",
+        "text": "12,600.00",
+        "isTextline": "true",
+        "confidence": 0.865,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1336,
+            648
+          ],
+          [
+            1336,
+            674
+          ],
+          [
+            1414,
+            648
+          ],
+          [
+            1414,
+            674
+          ]
+        ],
+        "id": 79,
+        "isVertical": "false",
+        "text": "74,843.00",
+        "isTextline": "true",
+        "confidence": 0.864,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1156,
+            678
+          ],
+          [
+            1156,
+            709
+          ],
+          [
+            1253,
+            678
+          ],
+          [
+            1253,
+            709
+          ]
+        ],
+        "id": 80,
+        "isVertical": "false",
+        "text": "計 ",
+        "isTextline": "true",
+        "confidence": 0.407,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1256,
+            682
+          ],
+          [
+            1256,
+            708
+          ],
+          [
+            1415,
+            682
+          ],
+          [
+            1415,
+            708
+          ]
+        ],
+        "id": 81,
+        "isVertical": "false",
+        "text": "2,059 2,172,973.43",
+        "isTextline": "true",
+        "confidence": 0.751,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1444,
+            340
+          ],
+          [
+            1444,
+            369
+          ],
+          [
+            1553,
+            340
+          ],
+          [
+            1553,
+            369
+          ]
+        ],
+        "id": 82,
+        "isVertical": "false",
+        "text": "家族",
+        "isTextline": "true",
+        "confidence": 0.824,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1422,
+            374
+          ],
+          [
+            1422,
+            400
+          ],
+          [
+            1466,
+            374
+          ],
+          [
+            1466,
+            400
+          ]
+        ],
+        "id": 83,
+        "isVertical": "false",
+        "text": "員数",
+        "isTextline": "true",
+        "confidence": 0.844,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1420,
+            406
+          ],
+          [
+            1420,
+            432
+          ],
+          [
+            1468,
+            406
+          ],
+          [
+            1468,
+            432
+          ]
+        ],
+        "id": 84,
+        "isVertical": "false",
+        "text": "1,091",
+        "isTextline": "true",
+        "confidence": 0.841,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1441,
+            501
+          ],
+          [
+            1441,
+            524
+          ],
+          [
+            1467,
+            501
+          ],
+          [
+            1467,
+            524
+          ]
+        ],
+        "id": 85,
+        "isVertical": "false",
+        "text": "388",
+        "isTextline": "true",
+        "confidence": 0.792,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1440,
+            431
+          ],
+          [
+            1440,
+            454
+          ],
+          [
+            1468,
+            431
+          ],
+          [
+            1468,
+            454
+          ]
+        ],
+        "id": 86,
+        "isVertical": "false",
+        "text": "100",
+        "isTextline": "true",
+        "confidence": 0.769,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1435,
+            477
+          ],
+          [
+            1435,
+            501
+          ],
+          [
+            1468,
+            477
+          ],
+          [
+            1468,
+            501
+          ]
+        ],
+        "id": 87,
+        "isVertical": "false",
+        "text": "114",
+        "isTextline": "true",
+        "confidence": 0.813,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1431,
+            453
+          ],
+          [
+            1431,
+            478
+          ],
+          [
+            1468,
+            453
+          ],
+          [
+            1468,
+            478
+          ]
+        ],
+        "id": 88,
+        "isVertical": "false",
+        "text": "230",
+        "isTextline": "true",
+        "confidence": 0.796,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1440,
+            525
+          ],
+          [
+            1440,
+            548
+          ],
+          [
+            1467,
+            525
+          ],
+          [
+            1467,
+            548
+          ]
+        ],
+        "id": 89,
+        "isVertical": "false",
+        "text": "11",
+        "isTextline": "true",
+        "confidence": 0.764,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1433,
+            547
+          ],
+          [
+            1433,
+            571
+          ],
+          [
+            1466,
+            547
+          ],
+          [
+            1466,
+            571
+          ]
+        ],
+        "id": 90,
+        "isVertical": "false",
+        "text": "339",
+        "isTextline": "true",
+        "confidence": 0.788,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1478,
+            375
+          ],
+          [
+            1478,
+            401
+          ],
+          [
+            1569,
+            375
+          ],
+          [
+            1569,
+            401
+          ]
+        ],
+        "id": 91,
+        "isVertical": "false",
+        "text": "給付金額",
+        "isTextline": "true",
+        "confidence": 0.875,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1581,
+            377
+          ],
+          [
+            1581,
+            403
+          ],
+          [
+            1624,
+            377
+          ],
+          [
+            1624,
+            403
+          ]
+        ],
+        "id": 92,
+        "isVertical": "false",
+        "text": "員数",
+        "isTextline": "true",
+        "confidence": 0.816,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1499,
+            431
+          ],
+          [
+            1499,
+            456
+          ],
+          [
+            1575,
+            431
+          ],
+          [
+            1575,
+            456
+          ]
+        ],
+        "id": 93,
+        "isVertical": "false",
+        "text": "72,355.38",
+        "isTextline": "true",
+        "confidence": 0.852,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1499,
+            454
+          ],
+          [
+            1499,
+            480
+          ],
+          [
+            1576,
+            454
+          ],
+          [
+            1576,
+            480
+          ]
+        ],
+        "id": 94,
+        "isVertical": "false",
+        "text": "85,588.75",
+        "isTextline": "true",
+        "confidence": 0.862,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1498,
+            478
+          ],
+          [
+            1498,
+            503
+          ],
+          [
+            1576,
+            478
+          ],
+          [
+            1576,
+            503
+          ]
+        ],
+        "id": 95,
+        "isVertical": "false",
+        "text": "35,076.50",
+        "isTextline": "true",
+        "confidence": 0.866,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1498,
+            524
+          ],
+          [
+            1498,
+            550
+          ],
+          [
+            1576,
+            524
+          ],
+          [
+            1576,
+            550
+          ]
+        ],
+        "id": 96,
+        "isVertical": "false",
+        "text": "50,762.25",
+        "isTextline": "true",
+        "confidence": 0.873,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1497,
+            501
+          ],
+          [
+            1497,
+            526
+          ],
+          [
+            1576,
+            501
+          ],
+          [
+            1576,
+            526
+          ]
+        ],
+        "id": 97,
+        "isVertical": "false",
+        "text": "22,913.50",
+        "isTextline": "true",
+        "confidence": 0.873,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1492,
+            408
+          ],
+          [
+            1492,
+            434
+          ],
+          [
+            1571,
+            408
+          ],
+          [
+            1571,
+            434
+          ]
+        ],
+        "id": 98,
+        "isVertical": "false",
+        "text": "417,069.4",
+        "isTextline": "true",
+        "confidence": 0.855,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1492,
+            548
+          ],
+          [
+            1492,
+            573
+          ],
+          [
+            1576,
+            548
+          ],
+          [
+            1576,
+            573
+          ]
+        ],
+        "id": 99,
+        "isVertical": "false",
+        "text": "169,862.80",
+        "isTextline": "true",
+        "confidence": 0.864,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1576,
+            408
+          ],
+          [
+            1576,
+            434
+          ],
+          [
+            1627,
+            408
+          ],
+          [
+            1627,
+            434
+          ]
+        ],
+        "id": 100,
+        "isVertical": "false",
+        "text": "1.976",
+        "isTextline": "true",
+        "confidence": 0.81,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1600,
+            526
+          ],
+          [
+            1600,
+            550
+          ],
+          [
+            1625,
+            526
+          ],
+          [
+            1625,
+            550
+          ]
+        ],
+        "id": 101,
+        "isVertical": "false",
+        "text": "10",
+        "isTextline": "true",
+        "confidence": 0.786,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1599,
+            549
+          ],
+          [
+            1599,
+            573
+          ],
+          [
+            1626,
+            549
+          ],
+          [
+            1626,
+            573
+          ]
+        ],
+        "id": 102,
+        "isVertical": "false",
+        "text": "300",
+        "isTextline": "true",
+        "confidence": 0.777,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1596,
+            433
+          ],
+          [
+            1596,
+            457
+          ],
+          [
+            1627,
+            433
+          ],
+          [
+            1627,
+            457
+          ]
+        ],
+        "id": 103,
+        "isVertical": "false",
+        "text": "204",
+        "isTextline": "true",
+        "confidence": 0.782,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1596,
+            456
+          ],
+          [
+            1596,
+            480
+          ],
+          [
+            1626,
+            456
+          ],
+          [
+            1626,
+            480
+          ]
+        ],
+        "id": 104,
+        "isVertical": "false",
+        "text": "413",
+        "isTextline": "true",
+        "confidence": 0.796,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1596,
+            480
+          ],
+          [
+            1596,
+            504
+          ],
+          [
+            1626,
+            480
+          ],
+          [
+            1626,
+            504
+          ]
+        ],
+        "id": 105,
+        "isVertical": "false",
+        "text": "226",
+        "isTextline": "true",
+        "confidence": 0.792,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1596,
+            503
+          ],
+          [
+            1596,
+            527
+          ],
+          [
+            1626,
+            503
+          ],
+          [
+            1626,
+            527
+          ]
+        ],
+        "id": 106,
+        "isVertical": "false",
+        "text": "226",
+        "isTextline": "true",
+        "confidence": 0.783,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1641,
+            345
+          ],
+          [
+            1641,
+            369
+          ],
+          [
+            1670,
+            345
+          ],
+          [
+            1670,
+            369
+          ]
+        ],
+        "id": 107,
+        "isVertical": "false",
+        "text": "#",
+        "isTextline": "true",
+        "confidence": 0.801,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1634,
+            377
+          ],
+          [
+            1634,
+            404
+          ],
+          [
+            1727,
+            377
+          ],
+          [
+            1727,
+            404
+          ]
+        ],
+        "id": 108,
+        "isVertical": "false",
+        "text": "給付金額",
+        "isTextline": "true",
+        "confidence": 0.877,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1635,
+            410
+          ],
+          [
+            1635,
+            436
+          ],
+          [
+            1739,
+            410
+          ],
+          [
+            1739,
+            436
+          ]
+        ],
+        "id": 109,
+        "isVertical": "false",
+        "text": "1,541,971.89",
+        "isTextline": "true",
+        "confidence": 0.865,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1658,
+            504
+          ],
+          [
+            1658,
+            529
+          ],
+          [
+            1739,
+            504
+          ],
+          [
+            1739,
+            529
+          ]
+        ],
+        "id": 110,
+        "isVertical": "false",
+        "text": "87,924.25",
+        "isTextline": "true",
+        "confidence": 0.865,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1656,
+            480
+          ],
+          [
+            1656,
+            505
+          ],
+          [
+            1739,
+            480
+          ],
+          [
+            1739,
+            505
+          ]
+        ],
+        "id": 111,
+        "isVertical": "false",
+        "text": "90.075.25",
+        "isTextline": "true",
+        "confidence": 0.87,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1656,
+            527
+          ],
+          [
+            1656,
+            552
+          ],
+          [
+            1739,
+            527
+          ],
+          [
+            1739,
+            552
+          ]
+        ],
+        "id": 112,
+        "isVertical": "false",
+        "text": "71,663.75",
+        "isTextline": "true",
+        "confidence": 0.865,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1652,
+            433
+          ],
+          [
+            1652,
+            458
+          ],
+          [
+            1739,
+            433
+          ],
+          [
+            1739,
+            458
+          ]
+        ],
+        "id": 113,
+        "isVertical": "false",
+        "text": "176,326.38",
+        "isTextline": "true",
+        "confidence": 0.871,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1651,
+            456
+          ],
+          [
+            1651,
+            481
+          ],
+          [
+            1739,
+            456
+          ],
+          [
+            1739,
+            481
+          ]
+        ],
+        "id": 114,
+        "isVertical": "false",
+        "text": "212,943.25",
+        "isTextline": "true",
+        "confidence": 0.873,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1650,
+            550
+          ],
+          [
+            1650,
+            575
+          ],
+          [
+            1738,
+            550
+          ],
+          [
+            1738,
+            575
+          ]
+        ],
+        "id": 115,
+        "isVertical": "false",
+        "text": "735,554.30",
+        "isTextline": "true",
+        "confidence": 0.875,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1446,
+            651
+          ],
+          [
+            1446,
+            674
+          ],
+          [
+            1466,
+            651
+          ],
+          [
+            1466,
+            674
+          ]
+        ],
+        "id": 116,
+        "isVertical": "true",
+        "text": "10",
+        "isTextline": "true",
+        "confidence": 0.722,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1442,
+            628
+          ],
+          [
+            1442,
+            652
+          ],
+          [
+            1466,
+            628
+          ],
+          [
+            1466,
+            652
+          ]
+        ],
+        "id": 117,
+        "isVertical": "false",
+        "text": "02",
+        "isTextline": "true",
+        "confidence": 0.774,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1441,
+            605
+          ],
+          [
+            1441,
+            628
+          ],
+          [
+            1466,
+            605
+          ],
+          [
+            1466,
+            628
+          ]
+        ],
+        "id": 118,
+        "isVertical": "false",
+        "text": "22",
+        "isTextline": "true",
+        "confidence": 0.759,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1440,
+            581
+          ],
+          [
+            1440,
+            606
+          ],
+          [
+            1466,
+            581
+          ],
+          [
+            1466,
+            606
+          ]
+        ],
+        "id": 119,
+        "isVertical": "false",
+        "text": "22",
+        "isTextline": "true",
+        "confidence": 0.762,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1496,
+            604
+          ],
+          [
+            1496,
+            630
+          ],
+          [
+            1574,
+            604
+          ],
+          [
+            1574,
+            630
+          ]
+        ],
+        "id": 120,
+        "isVertical": "false",
+        "text": "38,400.00",
+        "isTextline": "true",
+        "confidence": 0.864,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1496,
+            628
+          ],
+          [
+            1496,
+            653
+          ],
+          [
+            1574,
+            628
+          ],
+          [
+            1574,
+            653
+          ]
+        ],
+        "id": 121,
+        "isVertical": "false",
+        "text": "79,700.00",
+        "isTextline": "true",
+        "confidence": 0.848,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1492,
+            581
+          ],
+          [
+            1492,
+            607
+          ],
+          [
+            1575,
+            581
+          ],
+          [
+            1575,
+            607
+          ]
+        ],
+        "id": 122,
+        "isVertical": "false",
+        "text": "133,975.00",
+        "isTextline": "true",
+        "confidence": 0.858,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1557,
+            653
+          ],
+          [
+            1557,
+            676
+          ],
+          [
+            1575,
+            653
+          ],
+          [
+            1575,
+            676
+          ]
+        ],
+        "id": 123,
+        "isVertical": "true",
+        "text": "00",
+        "isTextline": "true",
+        "confidence": 0.599,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1623,
+            608
+          ],
+          [
+            1623,
+            634
+          ],
+          [
+            1646,
+            608
+          ],
+          [
+            1646,
+            634
+          ]
+        ],
+        "id": 124,
+        "isVertical": "true",
+        "text": "''",
+        "isTextline": "true",
+        "confidence": 0.554,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1601,
+            584
+          ],
+          [
+            1601,
+            608
+          ],
+          [
+            1625,
+            584
+          ],
+          [
+            1625,
+            608
+          ]
+        ],
+        "id": 125,
+        "isVertical": "false",
+        "text": "20",
+        "isTextline": "true",
+        "confidence": 0.758,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1601,
+            607
+          ],
+          [
+            1601,
+            631
+          ],
+          [
+            1624,
+            607
+          ],
+          [
+            1624,
+            631
+          ]
+        ],
+        "id": 126,
+        "isVertical": "true",
+        "text": "250",
+        "isTextline": "true",
+        "confidence": 0.719,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1601,
+            630
+          ],
+          [
+            1601,
+            654
+          ],
+          [
+            1623,
+            630
+          ],
+          [
+            1623,
+            654
+          ]
+        ],
+        "id": 127,
+        "isVertical": "true",
+        "text": "II",
+        "isTextline": "true",
+        "confidence": 0.731,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1597,
+            652
+          ],
+          [
+            1597,
+            677
+          ],
+          [
+            1624,
+            652
+          ],
+          [
+            1624,
+            677
+          ]
+        ],
+        "id": 128,
+        "isVertical": "false",
+        "text": "150",
+        "isTextline": "true",
+        "confidence": 0.612,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1656,
+            652
+          ],
+          [
+            1656,
+            678
+          ],
+          [
+            1737,
+            652
+          ],
+          [
+            1737,
+            678
+          ]
+        ],
+        "id": 129,
+        "isVertical": "false",
+        "text": "74,843.00",
+        "isTextline": "true",
+        "confidence": 0.857,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1655,
+            630
+          ],
+          [
+            1655,
+            655
+          ],
+          [
+            1737,
+            630
+          ],
+          [
+            1737,
+            655
+          ]
+        ],
+        "id": 130,
+        "isVertical": "false",
+        "text": "92,300.00",
+        "isTextline": "true",
+        "confidence": 0.857,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1654,
+            607
+          ],
+          [
+            1654,
+            632
+          ],
+          [
+            1738,
+            607
+          ],
+          [
+            1738,
+            632
+          ]
+        ],
+        "id": 131,
+        "isVertical": "false",
+        "text": "43,200.00",
+        "isTextline": "true",
+        "confidence": 0.849,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1650,
+            583
+          ],
+          [
+            1650,
+            608
+          ],
+          [
+            1738,
+            583
+          ],
+          [
+            1738,
+            608
+          ]
+        ],
+        "id": 132,
+        "isVertical": "false",
+        "text": "151,875.00",
+        "isTextline": "true",
+        "confidence": 0.872,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1418,
+            684
+          ],
+          [
+            1418,
+            709
+          ],
+          [
+            1465,
+            684
+          ],
+          [
+            1465,
+            709
+          ]
+        ],
+        "id": 133,
+        "isVertical": "false",
+        "text": "2,083",
+        "isTextline": "true",
+        "confidence": 0.803,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1473,
+            684
+          ],
+          [
+            1473,
+            709
+          ],
+          [
+            1575,
+            684
+          ],
+          [
+            1575,
+            709
+          ]
+        ],
+        "id": 134,
+        "isVertical": "false",
+        "text": "1,105,703.64",
+        "isTextline": "true",
+        "confidence": 0.808,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1577,
+            685
+          ],
+          [
+            1577,
+            710
+          ],
+          [
+            1624,
+            685
+          ],
+          [
+            1624,
+            710
+          ]
+        ],
+        "id": 135,
+        "isVertical": "false",
+        "text": "4,142",
+        "isTextline": "true",
+        "confidence": 0.786,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            1631,
+            686
+          ],
+          [
+            1631,
+            711
+          ],
+          [
+            1735,
+            686
+          ],
+          [
+            1735,
+            711
+          ]
+        ],
+        "id": 136,
+        "isVertical": "false",
+        "text": "3.278.677.07",
+        "isTextline": "true",
+        "confidence": 0.832,
+        "class_index": 1
+      }
+    ]
+  ],
+  "imginfo": {
+    "img_width": 2048,
+    "img_height": 1366,
+    "img_path": "/private/tmp/claude-501/-Users-yuta-nmjh-Dropbox-Yuta-Hashimoto-work-ndlocrlite-web/5908c273-7d74-40ae-893a-3b953a938c46/scratchpad/ref_in/digidepo_3048008_0025.jpg",
+    "img_name": "digidepo_3048008_0025.jpg"
+  }
+}

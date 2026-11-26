@@ -3,26 +3,25 @@
  * 参照実装: ndlkotenocr-worker/src/utils/model-loader.js
  */
 
+import { MODEL_FILES, MODEL_SHA256, type ModelKey } from './model-files'
+
 const DB_NAME = 'NDLOCRLiteDB'
 const DB_VERSION = 2
 const STORE_NAME = 'models'
 
 // モデルのバージョン（URLが変わったらここを更新）
-export const MODEL_VERSION = '2.0.0'
+export const MODEL_VERSION = '3.0.0'
 
 // モデル配信ベースURL（環境変数 VITE_MODEL_BASE_URL で指定、末尾スラッシュなし）
-const MODEL_BASE_URL = (import.meta.env.VITE_MODEL_BASE_URL as string | undefined) ?? ''
+// 開発時は .env.local で VITE_MODEL_BASE_URL=/models/dev のようにローカル配信に切り替える
+const MODEL_BASE_URL = ((import.meta.env.VITE_MODEL_BASE_URL as string | undefined) ?? '').replace(/\/$/, '')
 
-const R2_BASE = 'https://pub-9cac8877191a4c3697edb59fd982130f.r2.dev'
+// ONNXモデルのファイル名（すべて MODEL_BASE_URL 配下。NDLOCR-Lite v2.0.0）
+const MODEL_FILE_NAMES: Record<string, string> = { ...MODEL_FILES }
 
-// ONNXモデルのURL
-export const MODEL_URLS: Record<string, string> = {
-  layout: `${MODEL_BASE_URL}/deim-s-1024x1024.onnx`,
-  // カスケード文字認識モデル（行の文字数カテゴリに応じて使い分け）
-  recognition30: `${R2_BASE}/parseq-ndl-24x256-30-tiny-189epoch-tegaki3-r8data-202604.onnx`,  // カテゴリ3: ≤30文字 [1,3,24,256]
-  recognition50: `${R2_BASE}/parseq-ndl-24x384-50-tiny-300epoch-tegaki3-r8data-202604.onnx`,  // カテゴリ2: ≤50文字 [1,3,24,384]
-  recognition100: `${R2_BASE}/parseq-ndl-24x768-100-tiny-153epoch-tegaki3-r8data-202604.onnx`, // カテゴリ1: ≤100文字 [1,3,24,768]
-}
+export const MODEL_URLS: Record<string, string> = Object.fromEntries(
+  Object.entries(MODEL_FILE_NAMES).map(([k, f]) => [k, `${MODEL_BASE_URL}/${f}`])
+)
 
 function initDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -152,6 +151,16 @@ export async function loadModel(
 
   console.log(`Downloading model ${modelType} from ${modelUrl}`)
   const modelData = await downloadWithProgress(modelUrl, onProgress)
+
+  // 外部ホスト（GitHub raw / R2）から取得するため、本家公表の SHA-256 と照合してからキャッシュする
+  const expected = MODEL_SHA256[modelType as ModelKey]
+  if (expected) {
+    const digest = await crypto.subtle.digest('SHA-256', modelData)
+    const actual = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('')
+    if (actual !== expected) {
+      throw new Error(`Model ${modelType} checksum mismatch (expected ${expected}, got ${actual})`)
+    }
+  }
 
   await saveModelToCache(modelType, modelData)
   console.log(`Model ${modelType} cached successfully`)

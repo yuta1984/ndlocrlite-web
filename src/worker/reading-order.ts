@@ -251,10 +251,10 @@ export class ReadingOrderProcessor {
     if (x0 >= x1 || y0 >= y1) return
 
     const { xHist, yHist } = this.calcHist(table, x0, y0, x1, y1)
-    let [xBeg, xEnd, xVal] = this.calcMinSpan(xHist)
-    let [yBeg, yEnd, yVal] = this.calcMinSpan(yHist)
-    xBeg += x0; xEnd += x0
-    yBeg += y0; yEnd += y0
+    const [xBeg0, xEnd0, xVal] = this.calcMinSpan(xHist)
+    const [yBeg0, yEnd0, yVal] = this.calcMinSpan(yHist)
+    const xBeg = xBeg0 + x0, xEnd = xEnd0 + x0
+    const yBeg = yBeg0 + y0, yEnd = yEnd0 + y0
 
     // 全域と一致する場合（分割不能）→ 再帰終了
     if (x0 === xBeg && x1 === xEnd && y0 === yBeg && y1 === yEnd) return

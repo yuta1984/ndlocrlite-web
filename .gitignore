@@ -23,3 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
+
+# Test outputs / local models
+tests/reports/
+public/models/v2/

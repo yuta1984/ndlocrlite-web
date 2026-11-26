@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { TextBlock } from '../../types/ocr'
+import { useTextTransform } from '../../hooks/useTextTransform'
 
 interface RegionOCRDialogProps {
   cropDataUrl: string
@@ -12,6 +13,8 @@ interface RegionOCRDialogProps {
 export function RegionOCRDialog({ cropDataUrl, isProcessing, result, lang, onClose }: RegionOCRDialogProps) {
   const [copied, setCopied] = useState(false)
   const [ignoreNewlines, setIgnoreNewlines] = useState(false)
+  const transform = useTextTransform()
+  const fullText = result?.fullText ? transform(result.fullText) : ''
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -22,8 +25,8 @@ export function RegionOCRDialog({ cropDataUrl, isProcessing, result, lang, onClo
   }, [onClose])
 
   const handleCopy = async () => {
-    if (!result?.fullText) return
-    const text = ignoreNewlines ? result.fullText.replace(/\n/g, '') : result.fullText
+    if (!fullText) return
+    const text = ignoreNewlines ? fullText.replace(/\n/g, '') : fullText
     await navigator.clipboard.writeText(text)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -53,7 +56,7 @@ export function RegionOCRDialog({ cropDataUrl, isProcessing, result, lang, onClo
             <textarea
               className="region-ocr-textarea"
               readOnly
-              value={result.fullText}
+              value={fullText}
             />
           ) : (
             <p className="region-ocr-empty">

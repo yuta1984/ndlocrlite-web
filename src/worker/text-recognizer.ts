@@ -1,225 +1,106 @@
 /**
  * 文字認識モジュール（PARSeqモデル）
- * 参照実装: ndlkotenocr-worker/src/worker/text-recognizer.js
+ * 参照実装: ndlocr-lite/src/parseq.py
  */
 
 import * as yaml from 'js-yaml'
 import type * as OrtType from 'onnxruntime-web'
-import { ort, createSession } from './onnx-config'
+import { getOrt, createSession } from './onnx-config'
 import type { TextRegion } from '../types/ocr'
+import { cropRGBA, rotate90CCW, resizeBilinearRGB, type RGBAImage } from './image-ops'
+import { argmaxDecode, idsToText, parseCharset, removeAsciiSpacesAroundJapanesePunctuation } from './parseq-decode'
 
-interface RecognizerConfig {
-  inputShape: [number, number, number, number]
-  charList: string[]
-  maxLength: number
-}
-
-interface RecognitionResult {
+export interface RecognitionResult {
   text: string
   confidence: number
 }
 
+/** 縦長判定の閾値（h > w * VERTICAL_RATIO なら 90 度回転。本家 v2 で 1.0 → 0.8） */
+export const VERTICAL_RATIO = 0.8
+
+const CHARSET_URL = '/config/NDLmoji.yaml'
+let charListPromise: Promise<string[]> | null = null
+
+/** NDLmoji.yaml から文字リストを取得（Worker 内で 1 回だけ fetch） */
+export function loadCharList(url = CHARSET_URL): Promise<string[]> {
+  if (!charListPromise) {
+    charListPromise = (async () => {
+      const response = await fetch(url)
+      if (!response.ok) throw new Error(`Failed to load charset: ${response.statusText}`)
+      return charListFromYaml(await response.text())
+    })()
+    charListPromise.catch(() => { charListPromise = null })
+  }
+  return charListPromise
+}
+
+export function charListFromYaml(yamlText: string): string[] {
+  const cfg = yaml.load(yamlText) as { model?: { charset_train?: string } }
+  const charset = cfg?.model?.charset_train
+  if (!charset) throw new Error('charset_train not found in NDLmoji.yaml')
+  return parseCharset(charset)
+}
+
 export class TextRecognizer {
   private session: OrtType.InferenceSession | null = null
-  private initialized = false
-  private config: RecognizerConfig
-  private configPath = '/config/NDLmoji.yaml'
+  private charList: string[] = []
+  readonly inputShape: [number, number, number, number]
 
-  constructor(inputShape?: [number, number, number, number]) {
-    this.config = {
-      inputShape: inputShape ?? [1, 3, 16, 384],
-      charList: [],
-      maxLength: 25,
-    }
+  constructor(inputShape: [number, number, number, number]) {
+    this.inputShape = inputShape
   }
 
-  async initialize(modelData: ArrayBuffer): Promise<void> {
-    if (this.initialized) return
-
-    try {
-      await this.loadConfig()
-      this.session = await createSession(modelData)
-      this.initialized = true
-      console.log('Text recognizer initialized successfully')
-    } catch (error) {
-      console.error('Failed to initialize text recognizer:', error)
-      throw error
-    }
-  }
-
-  private async loadConfig(): Promise<void> {
-    try {
-      const response = await fetch(this.configPath)
-      if (!response.ok) throw new Error(`Failed to load config: ${response.statusText}`)
-
-      const yamlText = await response.text()
-      const yamlConfig = yaml.load(yamlText) as Record<string, unknown>
-
-      if (yamlConfig?.text_recognition) {
-        const textConfig = yamlConfig.text_recognition as Record<string, unknown>
-        if (textConfig.input_shape) this.config.inputShape = textConfig.input_shape as [number, number, number, number]
-        if (textConfig.max_length) this.config.maxLength = textConfig.max_length as number
-      }
-
-      if ((yamlConfig?.model as Record<string, unknown>)?.charset_train) {
-        const charsetTrain = (yamlConfig.model as Record<string, unknown>).charset_train as string
-        this.config.charList = charsetTrain.split('')
-        console.log(`Character list loaded: ${this.config.charList.length} characters`)
-      }
-    } catch (error) {
-      console.warn(`Failed to load config, using defaults: ${(error as Error).message}`)
-    }
-  }
-
-  async recognize(imageData: ImageData, region: TextRegion): Promise<RecognitionResult> {
-    const cropped = TextRecognizer.cropImageData(imageData, region)
-    return this.recognizeCropped(cropped)
-  }
-
-  async recognizeCropped(croppedImageData: ImageData): Promise<RecognitionResult> {
-    if (!this.initialized || !this.session) {
-      throw new Error('Text recognizer not initialized')
-    }
-
-    try {
-      const inputTensor = this.preprocess(croppedImageData)
-      const output = await this.session.run({
-        [this.session.inputNames[0]]: inputTensor,
-      })
-      return this.decodeOutput(output)
-    } catch (error) {
-      console.error('Text recognition failed:', error)
-      return { text: '', confidence: 0.0 }
-    }
-  }
-
-  static cropImageData(imageData: ImageData, region: TextRegion): ImageData {
-    const sourceCanvas = new OffscreenCanvas(imageData.width, imageData.height)
-    const sourceCtx = sourceCanvas.getContext('2d')!
-    sourceCtx.putImageData(imageData, 0, 0)
-
-    const canvas = new OffscreenCanvas(region.width, region.height)
-    const ctx = canvas.getContext('2d')!
-    ctx.drawImage(sourceCanvas, region.x, region.y, region.width, region.height, 0, 0, region.width, region.height)
-
-    return ctx.getImageData(0, 0, region.width, region.height)
-  }
-
-  /** 複数領域を一括クロップ。sourceCanvas を1度だけ生成して使い回す（個別生成だと N × フルサイズ Canvas が同時に乗るためOOM） */
-  static cropImageDataBatch(imageData: ImageData, regions: TextRegion[]): ImageData[] {
-    const sourceCanvas = new OffscreenCanvas(imageData.width, imageData.height)
-    const sourceCtx = sourceCanvas.getContext('2d')!
-    sourceCtx.putImageData(imageData, 0, 0)
-
-    return regions.map(region => {
-      const canvas = new OffscreenCanvas(region.width, region.height)
-      const ctx = canvas.getContext('2d')!
-      ctx.drawImage(sourceCanvas, region.x, region.y, region.width, region.height, 0, 0, region.width, region.height)
-      return ctx.getImageData(0, 0, region.width, region.height)
-    })
-  }
-
-  private preprocess(imageData: ImageData): OrtType.Tensor {
-    const [, channels, height, width] = this.config.inputShape
-    const imgWidth = imageData.width
-    const imgHeight = imageData.height
-
-    // 縦長画像は90度回転（反時計回り）
-    const canvas = new OffscreenCanvas(1, 1)
-    const ctx = canvas.getContext('2d')!
-
-    if (imgHeight > imgWidth) {
-      canvas.width = imgHeight
-      canvas.height = imgWidth
-      ctx.translate(canvas.width / 2, canvas.height / 2)
-      ctx.rotate(-Math.PI / 2)
-      ctx.translate(-canvas.height / 2, -canvas.width / 2)
-    } else {
-      canvas.width = imgWidth
-      canvas.height = imgHeight
-    }
-
-    const tempCanvas = new OffscreenCanvas(imgWidth, imgHeight)
-    const tempCtx = tempCanvas.getContext('2d')!
-    tempCtx.putImageData(imageData, 0, 0)
-    ctx.drawImage(tempCanvas, 0, 0)
-
-    // モデル入力サイズにリサイズ
-    const resizeCanvas = new OffscreenCanvas(width, height)
-    const resizeCtx = resizeCanvas.getContext('2d')!
-    resizeCtx.drawImage(canvas, 0, 0, width, height)
-
-    const resized = resizeCtx.getImageData(0, 0, width, height)
-    const { data } = resized
-
-    // Float32Array: [-1, 1] 正規化 (NCHW形式)
-    const tensorData = new Float32Array(channels * height * width)
-    for (let h = 0; h < height; h++) {
-      for (let w = 0; w < width; w++) {
-        const pixelOffset = (h * width + w) * 4
-        for (let c = 0; c < channels; c++) {
-          const value = data[pixelOffset + c] / 255.0
-          tensorData[c * height * width + h * width + w] = 2.0 * (value - 0.5)
-        }
+  async initialize(modelData: ArrayBuffer | Uint8Array, charList?: string[]): Promise<void> {
+    if (this.session) return
+    this.charList = charList ?? (await loadCharList())
+    this.session = await createSession(modelData)
+    const dims = (this.session.inputMetadata?.[0] as { shape?: unknown[] } | undefined)?.shape
+    if (dims && dims.length === 4) {
+      const [, , h, w] = dims
+      if (typeof h === 'number' && typeof w === 'number' && (h !== this.inputShape[2] || w !== this.inputShape[3])) {
+        throw new Error(`Recognizer input shape mismatch: model ${h}x${w}, config ${this.inputShape[2]}x${this.inputShape[3]}`)
       }
     }
-
-    return new ort.Tensor('float32', tensorData, this.config.inputShape)
   }
 
-  private decodeOutput(
-    outputs: Record<string, OrtType.Tensor>
-  ): RecognitionResult {
-    try {
-      const outputName = this.session!.outputNames[0]
-      const rawLogits = outputs[outputName].data as Float32Array
-      const logits = Array.from(rawLogits).map((v) =>
-        typeof v === 'bigint' ? Number(v) : v
-      )
+  async recognize(imageData: RGBAImage, region: TextRegion): Promise<RecognitionResult> {
+    return this.recognizeCropped(cropRGBA(imageData, region.x, region.y, region.width, region.height))
+  }
 
-      const dims = outputs[outputName].dims
-      const [, seqLength, vocabSize] = dims
+  async recognizeCropped(image: RGBAImage): Promise<RecognitionResult> {
+    if (!this.session) throw new Error('Text recognizer not initialized')
+    if (image.width === 0 || image.height === 0) return { text: '', confidence: 0 }
 
-      const resultClassIds: number[] = []
+    const inputTensor = this.preprocess(image)
+    const output = await this.session.run({ [this.session.inputNames[0]]: inputTensor })
+    const out = output[this.session.outputNames[0]]
+    const [, seqLength, vocabSize] = out.dims
+    const ids = argmaxDecode(out.data as Float32Array, seqLength, vocabSize)
+    return { text: removeAsciiSpacesAroundJapanesePunctuation(idsToText(ids, this.charList)), confidence: 0.9 }
+  }
 
-      for (let i = 0; i < seqLength; i++) {
-        const scores = logits.slice(i * vocabSize, (i + 1) * vocabSize)
-        const maxScore = Math.max(...scores)
-        const maxIndex = scores.indexOf(maxScore)
+  /** 本家 parseq.py preprocess と同じ: 縦長なら反時計回り回転 → INTER_LINEAR リサイズ → BGR → [-1, 1] */
+  preprocess(image: RGBAImage): OrtType.Tensor {
+    const [, , height, width] = this.inputShape
+    const src = image.height > image.width * VERTICAL_RATIO ? rotate90CCW(image) : image
+    const resized = resizeBilinearRGB(src, width, height)
 
-        // <eos> (ID=0) で終了
-        if (maxIndex === 0) break
-        // 特殊トークン (<s>=1, </s>=2, <pad>=3) をスキップ
-        if (maxIndex < 4) continue
-
-        resultClassIds.push(maxIndex - 1)
-      }
-
-      // 連続重複を除去してテキスト生成
-      const resultChars: string[] = []
-      let prevId = -1
-      for (const id of resultClassIds) {
-        if (id !== prevId && id < this.config.charList.length) {
-          resultChars.push(this.config.charList[id])
-          prevId = id
-        }
-      }
-
-      return {
-        text: resultChars.join('').trim(),
-        confidence: 0.9,
-      }
-    } catch (error) {
-      console.error('Error decoding output:', error)
-      return { text: '', confidence: 0.0 }
+    const plane = height * width
+    const tensorData = new Float32Array(3 * plane)
+    for (let i = 0; i < plane; i++) {
+      const r = resized[i * 3]
+      const g = resized[i * 3 + 1]
+      const b = resized[i * 3 + 2]
+      // 本家は RGB 画像に [:, :, ::-1] を適用して BGR 順で入力している
+      tensorData[i] = b / 127.5 - 1.0
+      tensorData[plane + i] = g / 127.5 - 1.0
+      tensorData[2 * plane + i] = r / 127.5 - 1.0
     }
+    return new (getOrt().Tensor)('float32', tensorData, this.inputShape)
   }
 
   dispose(): void {
-    if (this.session) {
-      this.session.release()
-      this.session = null
-    }
-    this.initialized = false
+    this.session?.release()
+    this.session = null
   }
 }

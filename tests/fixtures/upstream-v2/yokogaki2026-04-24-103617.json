@@ -1,0 +1,142 @@
+{
+  "contents": [
+    [
+      {
+        "boundingBox": [
+          [
+            47,
+            11
+          ],
+          [
+            47,
+            63
+          ],
+          [
+            435,
+            11
+          ],
+          [
+            435,
+            63
+          ]
+        ],
+        "id": 0,
+        "isVertical": "false",
+        "text": "つれづれなるままに、",
+        "isTextline": "true",
+        "confidence": 0.784,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            39,
+            93
+          ],
+          [
+            39,
+            148
+          ],
+          [
+            552,
+            93
+          ],
+          [
+            552,
+            148
+          ]
+        ],
+        "id": 1,
+        "isVertical": "false",
+        "text": "曰くらし、硯におかひて、",
+        "isTextline": "true",
+        "confidence": 0.817,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            18,
+            190
+          ],
+          [
+            18,
+            251
+          ],
+          [
+            559,
+            190
+          ],
+          [
+            559,
+            251
+          ]
+        ],
+        "id": 2,
+        "isVertical": "false",
+        "text": "ハムに移りゆくよしなし事を、",
+        "isTextline": "true",
+        "confidence": 0.705,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            23,
+            290
+          ],
+          [
+            23,
+            344
+          ],
+          [
+            576,
+            290
+          ],
+          [
+            576,
+            344
+          ]
+        ],
+        "id": 3,
+        "isVertical": "false",
+        "text": "そこはかとなく書きつくれば、",
+        "isTextline": "true",
+        "confidence": 0.738,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            20,
+            371
+          ],
+          [
+            20,
+            428
+          ],
+          [
+            602,
+            371
+          ],
+          [
+            602,
+            428
+          ]
+        ],
+        "id": 4,
+        "isVertical": "false",
+        "text": "あやしうこそものぐるはしけれ",
+        "isTextline": "true",
+        "confidence": 0.89,
+        "class_index": 1
+      }
+    ]
+  ],
+  "imginfo": {
+    "img_width": 645,
+    "img_height": 461,
+    "img_path": "/private/tmp/claude-501/-Users-yuta-nmjh-Dropbox-Yuta-Hashimoto-work-ndlocrlite-web/5908c273-7d74-40ae-893a-3b953a938c46/scratchpad/ref_in/yokogaki2026-04-24-103617.png",
+    "img_name": "yokogaki2026-04-24-103617.png"
+  }
+}

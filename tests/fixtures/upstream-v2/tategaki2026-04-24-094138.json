@@ -1,0 +1,168 @@
+{
+  "contents": [
+    [
+      {
+        "boundingBox": [
+          [
+            485,
+            19
+          ],
+          [
+            485,
+            357
+          ],
+          [
+            545,
+            19
+          ],
+          [
+            545,
+            357
+          ]
+        ],
+        "id": 0,
+        "isVertical": "true",
+        "text": "春はあけぼの。",
+        "isTextline": "true",
+        "confidence": 0.838,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            397,
+            23
+          ],
+          [
+            397,
+            769
+          ],
+          [
+            455,
+            23
+          ],
+          [
+            455,
+            769
+          ]
+        ],
+        "id": 1,
+        "isVertical": "true",
+        "text": "やうやう白くなりゆく山ぎは、",
+        "isTextline": "true",
+        "confidence": 0.896,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            294,
+            7
+          ],
+          [
+            294,
+            672
+          ],
+          [
+            346,
+            7
+          ],
+          [
+            346,
+            672
+          ]
+        ],
+        "id": 2,
+        "isVertical": "true",
+        "text": "のすこしあがりて、紫だちたる",
+        "isTextline": "true",
+        "confidence": 0.904,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            194,
+            16
+          ],
+          [
+            194,
+            630
+          ],
+          [
+            257,
+            16
+          ],
+          [
+            257,
+            630
+          ]
+        ],
+        "id": 3,
+        "isVertical": "true",
+        "text": "雲のほそくたなびきたる。",
+        "isTextline": "true",
+        "confidence": 0.918,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            102,
+            16
+          ],
+          [
+            102,
+            665
+          ],
+          [
+            154,
+            16
+          ],
+          [
+            154,
+            665
+          ]
+        ],
+        "id": 4,
+        "isVertical": "true",
+        "text": "夏は夜、月のころはさらなり。",
+        "isTextline": "true",
+        "confidence": 0.905,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            15,
+            12
+          ],
+          [
+            15,
+            795
+          ],
+          [
+            65,
+            12
+          ],
+          [
+            65,
+            795
+          ]
+        ],
+        "id": 5,
+        "isVertical": "true",
+        "text": "やみもなほ、蛍の多く飛びちがひたる。",
+        "isTextline": "true",
+        "confidence": 0.869,
+        "class_index": 1
+      }
+    ]
+  ],
+  "imginfo": {
+    "img_width": 574,
+    "img_height": 823,
+    "img_path": "/private/tmp/claude-501/-Users-yuta-nmjh-Dropbox-Yuta-Hashimoto-work-ndlocrlite-web/5908c273-7d74-40ae-893a-3b953a938c46/scratchpad/ref_in/tategaki2026-04-24-094138.png",
+    "img_name": "tategaki2026-04-24-094138.png"
+  }
+}

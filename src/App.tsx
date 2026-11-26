@@ -15,6 +15,8 @@ import { ResultPanel } from './components/results/ResultPanel'
 import { ResultActions } from './components/results/ResultActions'
 import { HistoryPanel } from './components/results/HistoryPanel'
 import { SettingsModal } from './components/settings/SettingsModal'
+import { ResizeHandle } from './components/layout/ResizeHandle'
+import { useResultPanelWidth } from './hooks/useResultPanelWidth'
 import { RegionOCRDialog } from './components/viewer/RegionOCRDialog'
 import { imageDataToDataUrl } from './utils/imageLoader'
 import './App.css'
@@ -41,10 +43,11 @@ function cropRegion(srcDataUrl: string, bbox: BoundingBox) {
 
 export default function App() {
   const { lang, toggleLanguage } = useI18n()
-  const { isReady, jobState, processImage, processRegion, resetState } = useOCRWorker()
+  const { isReady, backend, recWorkerCount, jobState, processImage, processRegion, resetState } = useOCRWorker()
   const { processedImages, isLoading: isLoadingFiles, processFiles, clearImages, fileLoadingState } = useFileProcessor()
   const { runs: historyRuns, saveRun, clearResults } = useResultCache()
 
+  const [resultPanelWidth, setResultPanelWidth] = useResultPanelWidth()
   const [sessionResults, setSessionResults] = useState<OCRResult[]>([])
   const [selectedResultIndex, setSelectedResultIndex] = useState(0)
   const [selectedBlock, setSelectedBlock] = useState<TextBlock | null>(null)
@@ -61,8 +64,12 @@ export default function App() {
     [processedImages]
   )
 
-  // processedImages が差し替わったらインデックスをリセット
-  useEffect(() => { setPendingImageIndex(0) }, [processedImages])
+  // processedImages が差し替わったらインデックスをリセット（レンダー中に前回値と比較）
+  const [prevProcessedImages, setPrevProcessedImages] = useState(processedImages)
+  if (prevProcessedImages !== processedImages) {
+    setPrevProcessedImages(processedImages)
+    setPendingImageIndex(0)
+  }
   const [regionOCRDialog, setRegionOCRDialog] = useState<{
     cropDataUrl: string
     isProcessing: boolean
@@ -152,7 +159,7 @@ export default function App() {
       for (let i = 0; i < processedImages.length; i++) {
         const image = processedImages[i]
         try {
-          const result = await processImage(image, i, processedImages.length)
+          const result = await processImage(image, i, processedImages.length, processedImages[i + 1])
           successItems.push({ result, thumbnailDataUrl: image.thumbnailDataUrl })
           sessionResultsAccum.push(result)
           setSessionResults([...sessionResultsAccum])
@@ -171,6 +178,10 @@ export default function App() {
             textBlocks: result.textBlocks,
             fullText: result.fullText,
             processingTimeMs: result.processingTimeMs,
+            pageBlocks: result.pageBlocks,
+            imageWidth: result.imageWidth,
+            imageHeight: result.imageHeight,
+            tables: result.tables,
           })),
           createdAt: runCreatedAt,
         }
@@ -218,6 +229,10 @@ export default function App() {
       fullText: file.fullText,
       processingTimeMs: file.processingTimeMs,
       createdAt: run.createdAt,
+      pageBlocks: file.pageBlocks,
+      imageWidth: file.imageWidth,
+      imageHeight: file.imageHeight,
+      tables: file.tables,
     }))
     setSessionResults(restoredResults)
     setSelectedResultIndex(0)
@@ -423,7 +438,7 @@ export default function App() {
                     const label = img.pageIndex ? `${img.fileName} (p.${img.pageIndex})` : img.fileName
                     return (
                       <option key={i} value={i} disabled={i >= sessionResults.length}>
-                        {i + 1} / {processedImages.length}　{label}
+                        {i + 1} / {processedImages.length}{'\u3000'}{label}
                       </option>
                     )
                   })}
@@ -438,7 +453,10 @@ export default function App() {
                 </button>
               </div>
 
-              <div className="result-main">
+              <div
+                className="result-main result-main-resizable"
+                style={{ '--result-panel-width': `${resultPanelWidth}px` } as React.CSSProperties}
+              >
                 <div className="result-left">
                   {!isProcessing && (
                     <button className="btn btn-secondary btn-above-viewer" onClick={handleClear}>
@@ -468,6 +486,8 @@ export default function App() {
                   </p>
                 </div>
 
+                <ResizeHandle width={resultPanelWidth} onChange={setResultPanelWidth} lang={lang} />
+
                 <div className="result-right">
                   <ResultPanel result={currentResult} selectedBlock={selectedBlock} selectedPageBlockText={selectedPageBlockText} lang={lang} />
                   <ResultActions results={sessionResults} currentResult={currentResult} lang={lang} />
@@ -491,7 +511,7 @@ export default function App() {
         />
       )}
       {showSettings && (
-        <SettingsModal onClose={() => setShowSettings(false)} lang={lang} />
+        <SettingsModal onClose={() => setShowSettings(false)} lang={lang} backend={backend} recWorkerCount={recWorkerCount} />
       )}
       {regionOCRDialog && (
         <RegionOCRDialog

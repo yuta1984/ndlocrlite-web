@@ -1,334 +1,239 @@
 /**
- * OCR Web Worker
- * バックグラウンドでOCR処理を実行
- * 参照実装: ndlkotenocr-worker/src/worker/ocr-worker.js
+ * OCR Web Worker（レイアウト検出担当）
+ *
+ * レイアウト検出（DEIM）は WebGPU が使えれば WebGPU、使えなければ WASM マルチスレッドで実行する。
  *
  * メッセージ種別:
- *   OCR_PROCESS   : 領域OCR用（逐次認識。processRegion で使用）
- *   LAYOUT_DETECT : バッチOCR用（レイアウト検出のみ実行し LAYOUT_DONE を返す）
- *                   認識フェーズはメインスレッドが N 本の recognition.worker に並列委譲する
- *
- * カスケード文字認識:
- *   charCountCategory=3 → recognizer30 (16×256, ≤30文字)
- *   charCountCategory=2 → recognizer50 (16×384, ≤50文字)
- *   それ以外            → recognizer100 (16×768, ≤100文字)
+ *   LAYOUT_DETECT : レイアウト検出のみ実行し、行画像を切り出して LAYOUT_DONE を返す
+ *                   認識フェーズはメインスレッドが認識 Worker プールに分配する（デスクトップ）
+ *   OCR_PROCESS   : レイアウト検出 + 認識 + 読み順をこの Worker 内で完結
+ *                   （認識 Worker を持たない standalone モード = モバイルで使用）
  */
 
-import './onnx-config'
+import { configureWasmThreads } from './ort-webgpu'
+import { isWebGPUAvailable, type ExecutionBackend } from './onnx-config'
 import { loadModel } from './model-loader'
 import { LayoutDetector } from './layout-detector'
-import { TextRecognizer } from './text-recognizer'
-import { ReadingOrderProcessor } from './reading-order'
-import type { TextBlock } from '../types/ocr'
-import type { WorkerInMessage, WorkerOutMessage } from '../types/worker'
+import { RecognizerSet } from './recognizer-set'
+import { recognizeCascade, serialize } from './cascade'
+import { assemblePage } from './assemble'
+import { cropRGBA, type RGBAImage } from './image-ops'
+import { TableRunner, type TableLine } from './table-runner'
+import type { WorkerInMessage, WorkerOutMessage, ModelProgress } from '../types/worker'
+
+type InitOptions = Extract<WorkerInMessage, { type: 'INITIALIZE' }>
 
 class OCRWorker {
   private layoutDetector: LayoutDetector | null = null
-  private recognizer30: TextRecognizer | null = null  // ≤30文字 [1,3,16,256]
-  private recognizer50: TextRecognizer | null = null  // ≤50文字 [1,3,16,384]
-  private recognizer100: TextRecognizer | null = null // ≤100文字 [1,3,16,768]
-  private readingOrderProcessor = new ReadingOrderProcessor()
-  private isInitialized = false
-  private layoutOnly = false
+  private recognizers: RecognizerSet | null = null
+  private initPromise: Promise<void> | null = null
+  private standalone = false
+  private tableRunner: TableRunner | null = null
+  backend: ExecutionBackend = 'wasm'
 
-  private post(message: WorkerOutMessage) {
-    self.postMessage(message)
+  private get tables(): TableRunner {
+    if (!this.tableRunner) this.tableRunner = new TableRunner(this.backend)
+    return this.tableRunner
   }
 
-  async initialize(layoutOnly = false): Promise<void> {
-    if (this.isInitialized) return
-    this.layoutOnly = layoutOnly
+  private post(message: WorkerOutMessage, transfer: Transferable[] = []) {
+    self.postMessage(message, { transfer })
+  }
 
-    try {
+  initialize(options: InitOptions = { type: 'INITIALIZE' }): Promise<void> {
+    if (!this.initPromise) {
+      this.standalone = options.standalone ?? false
+      this.initPromise = this.doInitialize(options).catch((error) => {
+        this.initPromise = null
+        this.post({ type: 'OCR_ERROR', error: (error as Error).message, stage: 'initialization' })
+        throw error
+      })
+    }
+    return this.initPromise
+  }
+
+  private async doInitialize(options: InitOptions): Promise<void> {
+    this.post({ type: 'OCR_PROGRESS', stage: 'initializing', progress: 0.02, message: 'Initializing...' })
+    configureWasmThreads(options.wasmThreads ?? 1)
+
+    const progresses: ModelProgress = { layout: 0, rec30: 0, rec50: 0, rec100: 0 }
+    const report = () => {
+      const p = this.standalone ? (progresses.layout + progresses.rec100) / 2 : progresses.layout
       this.post({
         type: 'OCR_PROGRESS',
-        stage: 'initializing',
-        progress: 0.02,
-        message: 'Initializing...',
+        stage: 'loading_models',
+        progress: 0.02 + p * 0.73,
+        message: `Loading models... ${Math.round(p * 100)}%`,
+        modelProgress: { ...progresses },
+      })
+    }
+
+    // standalone（モバイル）: rec100 もこの Worker で保持
+    // ダウンロードは並列に行うが、同一 ORT インスタンスでのセッション生成は直列にする
+    // （WebGPU セッションと WASM セッションを同時に生成するとハングするため）
+    const recDownload = this.standalone
+      ? loadModel('recognition100', (p) => { progresses.rec100 = p; report() })
+      : null
+
+    const layoutData = await loadModel('layout', (p) => { progresses.layout = p; report() })
+    this.post({ type: 'OCR_PROGRESS', stage: 'initializing_models', progress: 0.8, message: 'Preparing layout model...' })
+    this.layoutDetector = await this.createLayoutDetector(layoutData, options.backend ?? 'auto')
+    if (recDownload) {
+      await recDownload
+      this.post({ type: 'OCR_PROGRESS', stage: 'initializing_models', progress: 0.9, message: 'Preparing recognition model...' })
+      this.recognizers = new RecognizerSet(true)
+      await this.recognizers.load()
+    }
+
+    this.post({ type: 'OCR_PROGRESS', stage: 'initialized', progress: 1.0, message: 'Ready', backend: this.backend })
+  }
+
+  /** WebGPU でセッション作成 + ウォームアップ（シェーダーコンパイル）。失敗したら WASM にフォールバック */
+  private async createLayoutDetector(modelData: ArrayBuffer, preference: 'auto' | 'wasm'): Promise<LayoutDetector> {
+    if (preference === 'auto' && (await isWebGPUAvailable())) {
+      const detector = new LayoutDetector()
+      try {
+        await detector.initialize(modelData, { executionProviders: ['webgpu'], graphOptimizationLevel: 'all' })
+        await detector.detect({ data: new Uint8ClampedArray(64 * 64 * 4), width: 64, height: 64 })
+        this.backend = 'webgpu'
+        return detector
+      } catch (err) {
+        console.warn('WebGPU unavailable for layout model, falling back to WASM:', err)
+        detector.dispose()
+      }
+    }
+    const detector = new LayoutDetector()
+    await detector.initialize(modelData, { executionProviders: ['wasm'] })
+    this.backend = 'wasm'
+    return detector
+  }
+
+  private async detect(id: string, image: RGBAImage, silent = false) {
+    if (!silent) {
+      this.post({ type: 'OCR_PROGRESS', id, stage: 'layout_detection', progress: 0.1, message: 'Detecting text regions...' })
+    }
+    return this.layoutDetector!.detect(image, (p) => {
+      if (silent) return
+      this.post({
+        type: 'OCR_PROGRESS', id, stage: 'layout_detection',
+        progress: 0.1 + p * 0.3, message: `Detecting regions... ${Math.round(p * 100)}%`,
+      })
+    })
+  }
+
+  /** レイアウト検出 + カスケード認識 + 読み順（standalone モード用） */
+  async processOCR(id: string, image: RGBAImage, startTime: number, tableStructure = false): Promise<void> {
+    try {
+      await this.initialize()
+      if (!this.recognizers) {
+        this.recognizers = new RecognizerSet(true)
+      }
+      const recognizers = this.recognizers
+      await recognizers.load()
+      const { lines, blocks, tables: tableRegions } = await this.detect(id, image)
+
+      this.post({
+        type: 'OCR_PROGRESS', id, stage: 'text_recognition', progress: 0.4,
+        message: `Recognizing text in ${lines.length} regions...`,
       })
 
-      if (layoutOnly) {
-        // モバイル: レイアウトモデルのみロード（認識モデルは processOCR 時に遅延ロード）
-        const layoutModelData = await loadModel('layout', (p) => {
-          this.post({
-            type: 'OCR_PROGRESS',
-            stage: 'loading_models',
-            progress: 0.02 + p * 0.73,
-            message: `Loading models... ${Math.round(p * 100)}%`,
-            modelProgress: { layout: p, rec30: 0, rec50: 0, rec100: 0 },
-          })
+      let done = 0
+      const recognize = serialize(async (model, img) => {
+        const text = await recognizers.recognize(model, img)
+        done++
+        this.post({
+          type: 'OCR_PROGRESS', id, stage: 'text_recognition',
+          progress: 0.4 + (done / Math.max(1, lines.length)) * 0.5,
+          message: `Recognized ${done}/${lines.length} regions`,
         })
-        this.post({ type: 'OCR_PROGRESS', stage: 'initializing_models', progress: 0.76, message: 'Preparing layout model...' })
-        this.layoutDetector = new LayoutDetector()
-        await this.layoutDetector.initialize(layoutModelData)
-      } else {
-        // デスクトップ: 4モデルを並列ダウンロード（各モデルの進捗を合算してレポート）
-        const progresses = { layout: 0, rec30: 0, rec50: 0, rec100: 0 }
-        const reportProgress = () => {
-          const avg = (progresses.layout + progresses.rec30 + progresses.rec50 + progresses.rec100) / 4
-          this.post({
-            type: 'OCR_PROGRESS',
-            stage: 'loading_models',
-            progress: 0.02 + avg * 0.73,
-            message: `Loading models... ${Math.round(avg * 100)}%`,
-            modelProgress: { ...progresses },
-          })
-        }
-
-        const [layoutModelData, rec30Data, rec50Data, rec100Data] = await Promise.all([
-          loadModel('layout',        (p) => { progresses.layout = p; reportProgress() }),
-          loadModel('recognition30', (p) => { progresses.rec30  = p; reportProgress() }),
-          loadModel('recognition50', (p) => { progresses.rec50  = p; reportProgress() }),
-          loadModel('recognition100',(p) => { progresses.rec100 = p; reportProgress() }),
-        ])
-
-        // ONNXセッション作成（WASMシングルスレッドのため直列）
-        this.post({ type: 'OCR_PROGRESS', stage: 'initializing_models', progress: 0.76, message: 'Preparing layout model...' })
-        this.layoutDetector = new LayoutDetector()
-        await this.layoutDetector.initialize(layoutModelData)
-
-        this.post({ type: 'OCR_PROGRESS', stage: 'initializing_models', progress: 0.83, message: 'Preparing recognition model (30)...' })
-        this.recognizer30 = new TextRecognizer([1, 3, 16, 256])
-        await this.recognizer30.initialize(rec30Data)
-
-        this.post({ type: 'OCR_PROGRESS', stage: 'initializing_models', progress: 0.90, message: 'Preparing recognition model (50)...' })
-        this.recognizer50 = new TextRecognizer([1, 3, 16, 384])
-        await this.recognizer50.initialize(rec50Data)
-
-        this.post({ type: 'OCR_PROGRESS', stage: 'initializing_models', progress: 0.96, message: 'Preparing recognition model (100)...' })
-        this.recognizer100 = new TextRecognizer([1, 3, 16, 768])
-        await this.recognizer100.initialize(rec100Data)
-      }
-
-      this.isInitialized = true
-
-      this.post({
-        type: 'OCR_PROGRESS',
-        stage: 'initialized',
-        progress: 1.0,
-        message: 'Ready',
-      })
-    } catch (error) {
-      this.post({
-        type: 'OCR_ERROR',
-        error: (error as Error).message,
-        stage: 'initialization',
-      })
-      throw error
-    }
-  }
-
-  /** 認識モデルを遅延ロード（layoutOnly モードで processOCR が呼ばれた場合） */
-  private async ensureRecognizers(): Promise<void> {
-    if (this.recognizer100) return  // rec100 があれば最低限OK
-
-    if (this.layoutOnly) {
-      // モバイル: rec100 のみ（WASM ランタイムを 1 つに抑えるため）
-      const rec100Data = await loadModel('recognition100')
-      this.recognizer100 = new TextRecognizer([1, 3, 16, 768])
-      await this.recognizer100.initialize(rec100Data)
-    } else {
-      // デスクトップ: 3モデル全部
-      if (this.recognizer30 && this.recognizer50) return
-      const [rec30Data, rec50Data, rec100Data] = await Promise.all([
-        loadModel('recognition30'),
-        loadModel('recognition50'),
-        loadModel('recognition100'),
-      ])
-      this.recognizer30 = new TextRecognizer([1, 3, 16, 256])
-      await this.recognizer30.initialize(rec30Data)
-      this.recognizer50 = new TextRecognizer([1, 3, 16, 384])
-      await this.recognizer50.initialize(rec50Data)
-      this.recognizer100 = new TextRecognizer([1, 3, 16, 768])
-      await this.recognizer100.initialize(rec100Data)
-    }
-  }
-
-  /** charCountCategory に応じたモデルを選択 */
-  private selectRecognizer(charCountCategory?: number): TextRecognizer {
-    if (!this.layoutOnly) {
-      if (charCountCategory === 3) return this.recognizer30!
-      if (charCountCategory === 2) return this.recognizer50!
-    }
-    return this.recognizer100!  // モバイルは常に rec100
-  }
-
-  /** 領域OCR用: レイアウト検出 + 逐次認識 + 読み順処理 (processRegion から使用) */
-  async processOCR(id: string, imageData: ImageData, startTime: number): Promise<void> {
-    try {
-      if (!this.isInitialized) {
-        await this.initialize()
-      }
-      await this.ensureRecognizers()
-
-      // Stage 1: レイアウト検出
-      this.post({
-        type: 'OCR_PROGRESS',
-        id,
-        stage: 'layout_detection',
-        progress: 0.1,
-        message: 'Detecting text regions...',
+        return text
       })
 
-      const { lines: textRegions, blocks: pageBlocks } = await this.layoutDetector!.detect(
-        imageData,
-        (progress) => {
-          this.post({
-            type: 'OCR_PROGRESS',
-            id,
-            stage: 'layout_detection',
-            progress: 0.1 + progress * 0.3,
-            message: `Detecting regions... ${Math.round(progress * 100)}%`,
-          })
-        }
+      const texts = await recognizeCascade(
+        lines.map((r) => ({ image: cropRGBA(image, r.x, r.y, r.width, r.height), charCountCategory: r.charCountCategory })),
+        recognize,
+        { useCategory: !recognizers.singleModel }
       )
 
-      // Stage 2: 逐次文字認識（cropImageDataBatch で sourceCanvas を1回だけ生成）
-      this.post({
-        type: 'OCR_PROGRESS',
-        id,
-        stage: 'text_recognition',
-        progress: 0.4,
-        message: `Recognizing text in ${textRegions.length} regions...`,
-      })
-
-      const croppedImages = TextRecognizer.cropImageDataBatch(imageData, textRegions)
-      const recognitionResults: TextBlock[] = []
-      for (let i = 0; i < textRegions.length; i++) {
-        const region = textRegions[i]
-        const recognizer = this.selectRecognizer(region.charCountCategory)
-        const result = await recognizer.recognizeCropped(croppedImages[i])
-
-        recognitionResults.push({
-          ...region,
-          text: result.text,
-          readingOrder: i + 1,
-        })
-
-        this.post({
-          type: 'OCR_PROGRESS',
-          id,
-          stage: 'text_recognition',
-          progress: 0.4 + ((i + 1) / textRegions.length) * 0.4,
-          message: `Recognized ${i + 1}/${textRegions.length} regions`,
-        })
+      const page = assemblePage(lines, texts, blocks)
+      let tables: Awaited<ReturnType<TableRunner['infer']>> | undefined
+      if (tableStructure && tableRegions.length > 0) {
+        this.post({ type: 'OCR_PROGRESS', id, stage: 'table_structure', progress: 0.95, message: 'Recognizing table structure...' })
+        tables = await this.tables.infer(image, tableRegions, page.textBlocks)
       }
-
-      // Stage 3: 読み順処理
-      this.post({
-        type: 'OCR_PROGRESS',
-        id,
-        stage: 'reading_order',
-        progress: 0.8,
-        message: 'Processing reading order...',
-      })
-
-      const orderedResults = this.readingOrderProcessor.process(recognitionResults, pageBlocks)
-
-      // Stage 4: 出力生成
-      this.post({
-        type: 'OCR_PROGRESS',
-        id,
-        stage: 'generating_output',
-        progress: 0.9,
-        message: 'Generating output...',
-      })
-
-      const txt = orderedResults
-        .filter((b) => b.text)
-        .map((b) => b.text)
-        .join('\n')
-
       this.post({
         type: 'OCR_COMPLETE',
         id,
-        textBlocks: orderedResults,
-        txt,
+        textBlocks: page.textBlocks,
+        txt: page.fullText,
         processingTime: Date.now() - startTime,
+        pageBlocks: blocks,
+        tables,
       })
     } catch (error) {
-      this.post({
-        type: 'OCR_ERROR',
-        id,
-        error: (error as Error).message,
-      })
+      this.post({ type: 'OCR_ERROR', id, error: (error as Error).message })
     }
   }
 
-  /** バッチOCR用: レイアウト検出のみ実行し LAYOUT_DONE を返す (processImage から使用) */
-  async detectLayout(id: string, imageData: ImageData, startTime: number): Promise<void> {
+  /** 表構造推定（認識済みの行テキストをセルに割り当てる） */
+  async inferTables(id: string, image: RGBAImage, regions: Parameters<TableRunner['infer']>[1], lines: TableLine[]): Promise<void> {
     try {
-      if (!this.isInitialized) {
-        await this.initialize()
-      }
+      await this.initialize()
+      const tables = await this.tables.infer(image, regions, lines)
+      this.post({ type: 'TABLE_DONE', id, tables })
+    } catch (error) {
+      this.post({ type: 'OCR_ERROR', id, error: (error as Error).message })
+    }
+  }
 
-      this.post({
-        type: 'OCR_PROGRESS',
-        id,
-        stage: 'layout_detection',
-        progress: 0.1,
-        message: 'Detecting text regions...',
-      })
-
-      const { lines: textRegions, blocks: pageBlocks } = await this.layoutDetector!.detect(
-        imageData,
-        (progress) => {
-          this.post({
-            type: 'OCR_PROGRESS',
-            id,
-            stage: 'layout_detection',
-            progress: 0.1 + progress * 0.3,
-            message: `Detecting regions... ${Math.round(progress * 100)}%`,
-          })
-        }
-      )
-
-      // 各領域を事前クロップ（メインスレッドに Transferable で返す）
-      const croppedImages = TextRecognizer.cropImageDataBatch(imageData, textRegions)
-      const transferables = croppedImages.map(img => img.data.buffer)
-
-      self.postMessage(
-        { type: 'LAYOUT_DONE', id, textRegions, croppedImages, pageBlocks, startTime } satisfies WorkerOutMessage,
-        { transfer: transferables }
+  /** レイアウト検出のみ実行し、行画像を切り出して返す */
+  async detectLayout(id: string, image: RGBAImage, startTime: number, silent = false): Promise<void> {
+    try {
+      await this.initialize()
+      const { lines, blocks, tables } = await this.detect(id, image, silent)
+      const croppedImages = lines.map((r) => cropRGBA(image, r.x, r.y, r.width, r.height))
+      this.post(
+        { type: 'LAYOUT_DONE', id, textRegions: lines, croppedImages, pageBlocks: blocks, tableRegions: tables, startTime },
+        croppedImages.map((img) => img.data.buffer as ArrayBuffer)
       )
     } catch (error) {
-      this.post({
-        type: 'OCR_ERROR',
-        id,
-        error: (error as Error).message,
-      })
+      this.post({ type: 'OCR_ERROR', id, error: (error as Error).message })
     }
   }
 }
 
 const ocrWorker = new OCRWorker()
 
-self.onmessage = async (event: MessageEvent<WorkerInMessage>) => {
-  const message = event.data
+// メッセージは到着順に 1 件ずつ処理する（同一セッションへの同時 run を防ぐ。先読み要求もキューに並ぶ）
+let queue: Promise<void> = Promise.resolve()
+self.onmessage = (event: MessageEvent<WorkerInMessage>) => {
+  if (event.data.type === 'TERMINATE') {
+    self.close()
+    return
+  }
+  queue = queue.then(() => handleMessage(event.data)).catch(() => undefined)
+}
 
+async function handleMessage(message: WorkerInMessage) {
   switch (message.type) {
     case 'INITIALIZE':
-      await ocrWorker.initialize(message.layoutOnly)
+      await ocrWorker.initialize(message).catch(() => undefined)
       break
-
     case 'OCR_PROCESS':
-      await ocrWorker.processOCR(message.id, message.imageData, message.startTime)
+      await ocrWorker.processOCR(message.id, message.imageData, message.startTime, message.tableStructure)
       break
-
     case 'LAYOUT_DETECT':
-      await ocrWorker.detectLayout(message.id, message.imageData, message.startTime)
+      await ocrWorker.detectLayout(message.id, message.imageData, message.startTime, message.silent)
       break
-
-    case 'TERMINATE':
-      self.close()
+    case 'TABLE_INFER':
+      await ocrWorker.inferTables(message.id, message.imageData, message.regions, message.lines)
+      break
+    default:
       break
   }
 }
 
 self.onerror = (error) => {
   const message = typeof error === 'string' ? error : (error as ErrorEvent).message ?? 'Unknown error'
-  self.postMessage({
-    type: 'OCR_ERROR',
-    error: message,
-  } satisfies WorkerOutMessage)
+  self.postMessage({ type: 'OCR_ERROR', error: message } satisfies WorkerOutMessage)
 }

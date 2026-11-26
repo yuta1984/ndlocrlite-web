@@ -1,4 +1,4 @@
-import type { TextBlock } from './ocr'
+import type { TextBlock, PageBlock, TableStructure } from './ocr'
 
 export interface DBModelEntry {
   name: string // 'layout' | 'recognition'
@@ -14,6 +14,10 @@ export interface DBRunFile {
   textBlocks: TextBlock[]
   fullText: string
   processingTimeMs: number
+  pageBlocks?: PageBlock[]
+  imageWidth?: number
+  imageHeight?: number
+  tables?: TableStructure[]
 }
 
 // 1回の実行（複数ファイルをまとめた単位）

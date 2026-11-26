@@ -41,9 +41,13 @@ export function ImageViewer({
       img.addEventListener('load', updateSize)
       updateSize()
     }
-    window.addEventListener('resize', updateSize)
+    // ウィンドウだけでなく、結果パネルの幅変更（スプリッターのドラッグ）による画像サイズ変化にも追従する
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateSize) : null
+    if (img && observer) observer.observe(img)
+    else window.addEventListener('resize', updateSize)
     return () => {
       img?.removeEventListener('load', updateSize)
+      observer?.disconnect()
       window.removeEventListener('resize', updateSize)
     }
   }, [imageDataUrl])

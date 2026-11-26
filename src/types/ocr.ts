@@ -23,9 +23,15 @@ export interface PageBlock {
   height: number
 }
 
+/** レイアウト検出された表領域（block_table） */
+export interface TableRegion extends BoundingBox {
+  confidence: number
+}
+
 export interface LayoutDetectionResult {
   lines: TextRegion[]
   blocks: PageBlock[]
+  tables: TableRegion[]
 }
 
 export interface OCRResult {
@@ -37,6 +43,18 @@ export interface OCRResult {
   processingTimeMs: number
   createdAt: number // Unix timestamp (ms)
   pageBlocks?: PageBlock[] // DEIMが検出した段・カラム境界
+  imageWidth?: number
+  imageHeight?: number
+  tables?: TableStructure[] // 表構造推定の結果（有効時のみ）
+}
+
+/** 表構造推定の結果（1 表分） */
+export interface TableStructure {
+  tableIndex: number
+  layoutBbox: [number, number, number, number]
+  html: string
+  markdown: string
+  error?: string
 }
 
 export interface ProcessedImage {

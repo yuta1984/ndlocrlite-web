@@ -1,15 +1,39 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import type { OCRJobState, OCRResult, ProcessedImage, TextBlock, TextRegion, PageBlock } from '../types/ocr'
+import type { OCRJobState, OCRResult, ProcessedImage, TextBlock } from '../types/ocr'
 import type { WorkerInMessage, WorkerOutMessage } from '../types/worker'
-import type { RecWorkerInMessage, RecWorkerOutMessage } from '../types/recognition-worker'
+import type { RGBAImage } from '../worker/image-ops'
 import { imageDataToDataUrl } from '../utils/imageLoader'
-import { ReadingOrderProcessor } from '../worker/reading-order'
-// ?worker import → Vite が recognition.worker.ts を独立バンドルして Worker コンストラクタを返す
-import RecognitionWorkerFactory from '../worker/recognition.worker.ts?worker'
+import { recognizeCascade } from '../worker/cascade'
+import { assemblePage } from '../worker/assemble'
+import { getSettings } from '../utils/settings'
+import { RecognitionPool } from './recognition-pool'
 
-const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent)
-const N_REC_WORKERS = isMobile ? 0 : Math.min(Math.max(navigator.hardwareConcurrency ?? 4, 2), 8)
-const readingOrderProcessor = new ReadingOrderProcessor()
+type LayoutDone = Extract<WorkerOutMessage, { type: 'LAYOUT_DONE' }>
+export type ExecutionBackend = 'webgpu' | 'wasm'
+
+/**
+ * 実行構成を決める
+ * - 認識 Worker 数: 各 Worker が PARSeq 3 モデル（約 117MB + 実行時メモリ）を保持するため上限 4
+ *   （?workers=N で上書き可。0 でモバイルと同じ standalone 動作。検証用）
+ * - モバイル: 認識 Worker なし（ocr.worker 単体で rec100 のみ使用）
+ */
+function resolveConfig() {
+  const settings = getSettings()
+  const param = new URLSearchParams(location.search).get('workers')
+  const isMobileUA = /iPhone|iPad|Android/i.test(navigator.userAgent)
+  const cores = navigator.hardwareConcurrency ?? 4
+  let recWorkers: number
+  if (param !== null) recWorkers = Math.max(0, Math.min(16, Number(param) || 0))
+  else if (isMobileUA) recWorkers = 0
+  else if (settings.recWorkers > 0) recWorkers = Math.min(16, settings.recWorkers)
+  else recWorkers = Math.min(Math.max(cores - 2, 2), 4)
+  return {
+    recWorkers,
+    backend: settings.backend,
+    // WebGPU 非対応時のレイアウト検出 WASM スレッド数（認識 Worker と CPU を分け合う）
+    wasmThreads: Math.min(4, Math.max(1, Math.floor(cores / 2))),
+  }
+}
 
 const initialJobState: OCRJobState = {
   status: 'idle',
@@ -21,321 +45,315 @@ const initialJobState: OCRJobState = {
   message: '',
 }
 
+/** ImageData を Worker に送るためのプレーンオブジェクト（コピー） */
+function toRGBA(imageData: ImageData): RGBAImage {
+  return { data: new Uint8ClampedArray(imageData.data), width: imageData.width, height: imageData.height }
+}
+
 export function useOCRWorker() {
   const workerRef = useRef<Worker | null>(null)
-  const recWorkersRef = useRef<Worker[]>([])
+  const poolRef = useRef<RecognitionPool | null>(null)
+  const prefetchRef = useRef(new WeakMap<ProcessedImage, Promise<LayoutDone>>())
   const [isReady, setIsReady] = useState(false)
+  const [backend, setBackend] = useState<ExecutionBackend | null>(null)
+  const [recWorkerCount, setRecWorkerCount] = useState(0)
   const [jobState, setJobState] = useState<OCRJobState>(initialJobState)
 
-  // OCR Worker + 認識 Worker を起動
+  // OCR Worker（レイアウト検出）+ 認識 Worker プールを起動
   useEffect(() => {
-    const worker = new Worker(
-      new URL('../worker/ocr.worker.ts', import.meta.url),
-      { type: 'module' }
-    )
+    const config = resolveConfig()
+    setRecWorkerCount(config.recWorkers)
+    const worker = new Worker(new URL('../worker/ocr.worker.ts', import.meta.url), { type: 'module' })
     workerRef.current = worker
+    const pool = config.recWorkers > 0 ? new RecognitionPool(config.recWorkers) : null
+    poolRef.current = pool
 
-    // N 本の認識 Worker を ?worker import から生成（Vite が正しくバンドル）
-    const recWorkers: Worker[] = Array.from({ length: N_REC_WORKERS }, () => new RecognitionWorkerFactory())
-    recWorkersRef.current = recWorkers
-
-    // 初期化完了フラグ（OCR Worker + 認識 Workers の両方が揃ったら isReady = true）
     let ocrWorkerReady = false
-    let recReadyCount = 0
-
-    const checkBothReady = () => {
-      if (ocrWorkerReady && (N_REC_WORKERS === 0 || recReadyCount >= N_REC_WORKERS)) {
+    let poolReady = pool === null
+    let poolProgress = pool === null ? 1 : 0
+    let layoutProgress = 0
+    let disposed = false
+    const checkReady = () => {
+      if (!disposed && ocrWorkerReady && poolReady) {
         setIsReady(true)
         setJobState(initialJobState)
       }
     }
-
-    // OCR Worker 初期化
-    worker.postMessage({ type: 'INITIALIZE', layoutOnly: isMobile } satisfies WorkerInMessage)
-
-    worker.onmessage = (event: MessageEvent<WorkerOutMessage>) => {
-      const msg = event.data
-      if (msg.type === 'OCR_PROGRESS') {
-        if (msg.stage === 'initialized') {
-          ocrWorkerReady = true
-          checkBothReady()
-        } else {
-          setJobState((prev) => ({
-            ...prev,
-            status: 'loading_model',
-            stageProgress: msg.progress,
-            stage: msg.stage,
-            message: msg.message,
-            modelProgress: msg.modelProgress,
-          }))
-        }
-      }
+    const reportLoading = (stage: string, message: string, modelProgress?: OCRJobState['modelProgress']) => {
+      if (ocrWorkerReady && poolReady) return
+      setJobState((prev) => ({
+        ...prev,
+        status: 'loading_model',
+        stageProgress: (layoutProgress + poolProgress) / 2,
+        stage,
+        message,
+        modelProgress: modelProgress ?? prev.modelProgress,
+      }))
     }
 
-    // 認識 Worker 初期化
-    recWorkers.forEach((w) => {
-      w.onmessage = (e: MessageEvent<RecWorkerOutMessage>) => {
-        if (e.data.type === 'REC_READY') {
-          recReadyCount++
-          w.onmessage = null
-          checkBothReady()
+    const onInitMessage = (event: MessageEvent<WorkerOutMessage>) => {
+      const msg = event.data
+      if (msg.type === 'OCR_PROGRESS' && msg.id === undefined) {
+        if (msg.stage === 'initialized') {
+          ocrWorkerReady = true
+          layoutProgress = 1
+          if (msg.backend) setBackend(msg.backend)
+          worker.removeEventListener('message', onInitMessage)
+          checkReady()
+        } else {
+          layoutProgress = msg.progress
+          if (msg.modelProgress) {
+            latestModelProgress = pool
+              ? { ...(latestModelProgress ?? msg.modelProgress), layout: msg.modelProgress.layout }
+              : msg.modelProgress
+          }
+          reportLoading(msg.stage, msg.message, latestModelProgress)
         }
-        // REC_PROGRESS は初期化進捗として無視（OCR Worker のモデル進捗を主表示に使用）
+      } else if (msg.type === 'OCR_ERROR' && msg.id === undefined) {
+        setJobState((prev) => ({ ...prev, status: 'error', errorMessage: msg.error }))
       }
-      w.postMessage({ type: 'REC_INIT', singleModel: isMobile } satisfies RecWorkerInMessage)
+    }
+    worker.addEventListener('message', onInitMessage)
+    worker.postMessage({
+      type: 'INITIALIZE',
+      standalone: pool === null,
+      backend: config.backend,
+      wasmThreads: config.wasmThreads,
+    } satisfies WorkerInMessage)
+
+    const recProgress = { recognition30: 0, recognition50: 0, recognition100: 0 }
+    let latestModelProgress: OCRJobState['modelProgress'] = { layout: 0, rec30: 0, rec50: 0, rec100: 0 }
+    pool?.init(false, (model, p) => {
+      recProgress[model] = p
+      // ダウンロード完了後のセッション生成分を残して 0.9 までをダウンロード進捗とする
+      poolProgress = ((recProgress.recognition30 + recProgress.recognition50 + recProgress.recognition100) / 3) * 0.9
+      latestModelProgress = {
+        ...(latestModelProgress ?? { layout: 0, rec30: 0, rec50: 0, rec100: 0 }),
+        rec30: recProgress.recognition30,
+        rec50: recProgress.recognition50,
+        rec100: recProgress.recognition100,
+      }
+      reportLoading('loading_models', `Loading models... ${Math.round(((layoutProgress + poolProgress) / 2) * 100)}%`, latestModelProgress)
     })
+      .then(() => { poolReady = true; poolProgress = 1; checkReady() })
+      .catch((err: Error) => setJobState((prev) => ({ ...prev, status: 'error', errorMessage: err.message })))
 
     return () => {
+      disposed = true
       worker.postMessage({ type: 'TERMINATE' } satisfies WorkerInMessage)
       worker.terminate()
-      recWorkers.forEach((w) => {
-        w.postMessage({ type: 'REC_TERMINATE' } satisfies RecWorkerInMessage)
-        w.terminate()
-      })
+      pool?.terminate()
       workerRef.current = null
-      recWorkersRef.current = []
+      poolRef.current = null
     }
   }, [])
 
-  /**
-   * processImage: バッチOCR用（LAYOUT_DETECT → 並列認識 → 読み順）
-   * OCR Worker でレイアウト検出のみ行い、認識フェーズは N 本の認識 Worker に並列委譲する。
-   * imageData は参照を保持したいため Transferable を使わずに structured clone で送信。
-   */
-  const processImage = useCallback(
-    (image: ProcessedImage, fileIndex: number, totalFiles: number): Promise<OCRResult> => {
-      return new Promise((resolve, reject) => {
-        if (!workerRef.current) {
-          reject(new Error('Worker not initialized'))
-          return
-        }
-
-        const id = `${Date.now()}-${fileIndex}`
-        // imageData を転送前にキャプチャ（LAYOUT_DONE 受信後も参照可能にする）
-        const imageDataUrl = imageDataToDataUrl(image.imageData)
-
-        setJobState({
-          status: 'processing',
-          currentFile: image.fileName,
-          currentFileIndex: fileIndex + 1,
-          totalFiles,
-          stageProgress: 0,
-          stage: 'starting',
-          message: '',
-        })
-
+  /** OCR Worker に 1 メッセージ送り、id に対応する完了/エラーを待つ */
+  const callWorker = useCallback(
+    <T,>(
+      message: WorkerInMessage & { id: string },
+      onMessage: (msg: WorkerOutMessage) => T | undefined,
+      transfer: Transferable[] = []
+    ): Promise<T> =>
+      new Promise((resolve, reject) => {
+        const worker = workerRef.current
+        if (!worker) { reject(new Error('Worker not initialized')); return }
         const handler = (event: MessageEvent<WorkerOutMessage>) => {
           const msg = event.data
-          if (msg.id !== undefined && msg.id !== id) return
-
-          if (msg.type === 'OCR_PROGRESS') {
-            setJobState((prev) => ({
-              ...prev,
-              stageProgress: msg.progress,
-              stage: msg.stage,
-              message: msg.message,
-              status: 'processing',
-              modelProgress: msg.modelProgress,
-            }))
-          } else if (msg.type === 'OCR_COMPLETE') {
-            // モバイル(OCR_PROCESS)パスの完了
-            workerRef.current?.removeEventListener('message', handler)
-            const fileName = image.pageIndex ? `${image.fileName} (p.${image.pageIndex})` : image.fileName
-            setJobState((prev) => ({ ...prev, status: 'done', stageProgress: 1 }))
-            resolve({
-              id,
-              fileName,
-              imageDataUrl,
-              textBlocks: msg.textBlocks,
-              fullText: msg.txt,
-              processingTimeMs: msg.processingTime,
-              createdAt: Date.now(),
-            })
-          } else if (msg.type === 'LAYOUT_DONE') {
-            workerRef.current?.removeEventListener('message', handler)
-            runRecognition(id, imageDataUrl, image, msg.textRegions, msg.croppedImages, msg.pageBlocks, msg.startTime, resolve, reject)
-          } else if (msg.type === 'OCR_ERROR') {
-            workerRef.current?.removeEventListener('message', handler)
-            setJobState((prev) => ({
-              ...prev,
-              status: 'error',
-              errorMessage: msg.error,
-            }))
+          if (msg.id !== message.id) return
+          if (msg.type === 'OCR_ERROR') {
+            worker.removeEventListener('message', handler)
             reject(new Error(msg.error))
+            return
+          }
+          const result = onMessage(msg)
+          if (result !== undefined) {
+            worker.removeEventListener('message', handler)
+            resolve(result)
           }
         }
-
-        workerRef.current.addEventListener('message', handler)
-
-        if (N_REC_WORKERS === 0) {
-          // モバイル: ocr.worker 1つで完結（recognition.worker なし）
-          workerRef.current.postMessage({
-            type: 'OCR_PROCESS',
-            id,
-            imageData: image.imageData,
-            startTime: Date.now(),
-          } satisfies WorkerInMessage)
-        } else {
-          // デスクトップ: LAYOUT_DETECT → 並列 recognition workers
-          workerRef.current.postMessage({
-            type: 'LAYOUT_DETECT',
-            id,
-            imageData: image.imageData,
-            startTime: Date.now(),
-          } satisfies WorkerInMessage)
-        }
-      })
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        worker.addEventListener('message', handler)
+        worker.postMessage(message, transfer)
+      }),
     []
   )
 
-  /** LAYOUT_DONE 後の認識フェーズを N 本の認識 Worker に並列委譲 */
-  const runRecognition = (
-    id: string,
-    imageDataUrl: string,
-    image: ProcessedImage,
-    textRegions: TextRegion[],
-    croppedImages: ImageData[],
-    pageBlocks: PageBlock[],
-    startTime: number,
-    resolve: (result: OCRResult) => void,
-    reject: (error: Error) => void
-  ) => {
-    const recWorkers = recWorkersRef.current
+  const detectLayout = useCallback(
+    (imageData: ImageData, id: string, silent: boolean, onProgress?: (msg: WorkerOutMessage) => void) => {
+      const rgba = toRGBA(imageData)
+      return callWorker<LayoutDone>(
+        { type: 'LAYOUT_DETECT', id, imageData: rgba, startTime: Date.now(), silent },
+        (msg) => {
+          onProgress?.(msg)
+          return msg.type === 'LAYOUT_DONE' ? msg : undefined
+        },
+        [rgba.data.buffer as ArrayBuffer]
+      )
+    },
+    [callWorker]
+  )
 
-    if (textRegions.length === 0) {
-      const result: OCRResult = {
-        id,
-        fileName: image.pageIndex ? `${image.fileName} (p.${image.pageIndex})` : image.fileName,
-        imageDataUrl,
-        textBlocks: [],
-        fullText: '',
-        processingTimeMs: Date.now() - startTime,
-        createdAt: Date.now(),
-      }
-      setJobState((prev) => ({ ...prev, status: 'done', stageProgress: 1 }))
-      resolve(result)
-      return
-    }
+  /** 表構造推定（ocr.worker で実行） */
+  const inferTables = useCallback(
+    (imageData: ImageData, id: string, regions: LayoutDone['tableRegions'], lines: TextBlock[]) => {
+      const rgba = toRGBA(imageData)
+      return callWorker(
+        {
+          type: 'TABLE_INFER', id, imageData: rgba, regions,
+          lines: lines.map(({ x, y, width, height, text }) => ({ x, y, width, height, text })),
+        },
+        (msg) => (msg.type === 'TABLE_DONE' ? msg.tables : undefined),
+        [rgba.data.buffer as ArrayBuffer]
+      )
+    },
+    [callWorker]
+  )
 
-    const activeWorkers = Math.min(recWorkers.length, textRegions.length)
-    setJobState((prev) => ({
-      ...prev,
-      stageProgress: 0.4,
-      stage: 'text_recognition',
-      message: `Recognizing text in ${textRegions.length} regions (${activeWorkers} threads)...`,
-    }))
-
-    // インデックス均等分割（round-robin）
-    const N = recWorkers.length
-    type Job = { id: number; croppedImageData: ImageData; charCountCategory?: number }
-    const chunks: Job[][] = Array.from({ length: N }, () => [])
-    textRegions.forEach((region, i) => {
-      chunks[i % N].push({ id: i, croppedImageData: croppedImages[i], charCountCategory: region.charCountCategory })
-    })
-
-    const dispatch = (worker: Worker, jobs: Job[]): Promise<Array<{ id: number; text: string; confidence: number }>> =>
-      new Promise((res, rej) => {
-        if (jobs.length === 0) { res([]); return }
-        worker.onmessage = (e: MessageEvent<RecWorkerOutMessage>) => {
-          if (e.data.type === 'REC_COMPLETE') {
-            worker.onmessage = null
-            res(e.data.results)
-          } else if (e.data.type === 'REC_ERROR') {
-            worker.onmessage = null
-            rej(new Error(e.data.error))
-          }
+  /** 認識 Worker プールでカスケード認識 → 読み順 */
+  const recognizeLayout = useCallback(
+    async (layout: LayoutDone, onDone?: (done: number, total: number) => void) => {
+      const pool = poolRef.current!
+      const total = layout.textRegions.length
+      let done = 0
+      const texts = await recognizeCascade(
+        layout.textRegions.map((r, i) => ({ image: layout.croppedImages[i], charCountCategory: r.charCountCategory })),
+        async (model, img) => {
+          const text = await pool.recognize(model, img)
+          onDone?.(++done, total)
+          return text
         }
-        const transferables = jobs.map(j => j.croppedImageData.data.buffer)
-        worker.postMessage({ type: 'REC_PROCESS', jobs } satisfies RecWorkerInMessage, transferables)
+      )
+      return assemblePage(layout.textRegions, texts, layout.pageBlocks)
+    },
+    []
+  )
+
+  /**
+   * processImage: バッチOCR用
+   * デスクトップ: LAYOUT_DETECT → 認識 Worker プールでカスケード認識 → 読み順
+   *   next を渡すと、現在ページの認識中に次ページのレイアウト検出を先読みする
+   * standalone（モバイル）: OCR_PROCESS（ocr.worker 内で完結）
+   */
+  const processImage = useCallback(
+    async (image: ProcessedImage, fileIndex: number, totalFiles: number, next?: ProcessedImage): Promise<OCRResult> => {
+      const id = `${Date.now()}-${fileIndex}`
+      const imageDataUrl = imageDataToDataUrl(image.imageData)
+      const fileName = image.pageIndex ? `${image.fileName} (p.${image.pageIndex})` : image.fileName
+      const startTime = Date.now()
+
+      setJobState({
+        status: 'processing',
+        currentFile: image.fileName,
+        currentFileIndex: fileIndex + 1,
+        totalFiles,
+        stageProgress: 0,
+        stage: 'starting',
+        message: '',
       })
 
-    Promise.all(recWorkers.map((w, i) => dispatch(w, chunks[i])))
-      .then((chunkResults) => {
-        const allResults = chunkResults.flat()
-        const resultMap = new Map(allResults.map(r => [r.id, r]))
+      const onProgress = (msg: WorkerOutMessage) => {
+        if (msg.type === 'OCR_PROGRESS') {
+          setJobState((prev) => ({ ...prev, stageProgress: msg.progress, stage: msg.stage, message: msg.message, status: 'processing' }))
+        }
+      }
 
-        const recognitionResults: TextBlock[] = textRegions.map((region, i) => ({
-          ...region,
-          text: resultMap.get(i)?.text ?? '',
-          readingOrder: i + 1,
-        }))
+      try {
+        let page: { textBlocks: TextBlock[]; fullText: string }
+        let pageBlocks: OCRResult['pageBlocks']
+        let tables: OCRResult['tables']
+        const pool = poolRef.current
 
-        setJobState((prev) => ({
-          ...prev,
-          stageProgress: 0.8,
-          stage: 'reading_order',
-          message: 'Processing reading order...',
-        }))
+        const tableStructure = getSettings().tableStructure
+        if (!pool) {
+          const rgba = toRGBA(image.imageData)
+          const done = await callWorker(
+            { type: 'OCR_PROCESS', id, imageData: rgba, startTime, tableStructure },
+            (msg) => {
+              onProgress(msg)
+              return msg.type === 'OCR_COMPLETE' ? msg : undefined
+            },
+            [rgba.data.buffer as ArrayBuffer]
+          )
+          page = { textBlocks: done.textBlocks, fullText: done.txt }
+          pageBlocks = done.pageBlocks
+          tables = done.tables
+        } else {
+          const prefetched = prefetchRef.current.get(image)
+          prefetchRef.current.delete(image)
+          const layout = await (prefetched ?? detectLayout(image.imageData, id, false, onProgress))
+          pageBlocks = layout.pageBlocks
 
-        const orderedResults = readingOrderProcessor.process(recognitionResults, pageBlocks)
-        const txt = orderedResults.filter(b => b.text).map(b => b.text).join('\n')
+          // 次ページのレイアウト検出を先読み（ocr.worker は認識中は空いているため）
+          if (next && !prefetchRef.current.has(next)) {
+            const p = detectLayout(next.imageData, `${id}-prefetch`, true)
+            p.catch(() => undefined)
+            prefetchRef.current.set(next, p)
+          }
 
-        const result: OCRResult = {
-          id,
-          fileName: image.pageIndex ? `${image.fileName} (p.${image.pageIndex})` : image.fileName,
-          imageDataUrl,
-          textBlocks: orderedResults,
-          fullText: txt,
-          processingTimeMs: Date.now() - startTime,
-          createdAt: Date.now(),
-          pageBlocks,
+          const total = layout.textRegions.length
+          setJobState((prev) => ({
+            ...prev,
+            stageProgress: 0.4,
+            stage: 'text_recognition',
+            message: `Recognizing text in ${total} regions (${pool.size} threads)...`,
+          }))
+          page = await recognizeLayout(layout, (done) => {
+            setJobState((prev) => ({
+              ...prev,
+              stageProgress: 0.4 + (done / Math.max(1, total)) * 0.5,
+              message: `Recognized ${done}/${total} regions`,
+            }))
+          })
+
+          if (tableStructure && layout.tableRegions.length > 0) {
+            setJobState((prev) => ({ ...prev, stageProgress: 0.92, stage: 'table_structure', message: 'Recognizing table structure...' }))
+            tables = await inferTables(image.imageData, `${id}-table`, layout.tableRegions, page.textBlocks)
+          }
         }
 
         setJobState((prev) => ({ ...prev, status: 'done', stageProgress: 1 }))
-        resolve(result)
-      })
-      .catch((err: Error) => {
-        setJobState((prev) => ({
-          ...prev,
-          status: 'error',
-          errorMessage: err.message,
-        }))
-        reject(err)
-      })
-  }
-
-  /**
-   * processRegion: 領域OCR用（OCR_PROCESS → 逐次認識、変更なし）
-   */
-  const processRegion = useCallback(
-    (imageData: ImageData): Promise<{ textBlocks: TextBlock[]; fullText: string }> => {
-      return new Promise((resolve, reject) => {
-        if (!workerRef.current) {
-          reject(new Error('Worker not initialized'))
-          return
+        return {
+          id,
+          fileName,
+          imageDataUrl,
+          textBlocks: page.textBlocks,
+          fullText: page.fullText,
+          processingTimeMs: Date.now() - startTime,
+          createdAt: Date.now(),
+          pageBlocks,
+          imageWidth: image.imageData.width,
+          imageHeight: image.imageData.height,
+          tables,
         }
-
-        const id = `region-${Date.now()}`
-
-        const handler = (event: MessageEvent<WorkerOutMessage>) => {
-          const msg = event.data
-          if (msg.id !== id) return  // 他ジョブのメッセージを無視
-
-          if (msg.type === 'OCR_COMPLETE') {
-            workerRef.current?.removeEventListener('message', handler)
-            resolve({ textBlocks: msg.textBlocks, fullText: msg.txt })
-          } else if (msg.type === 'OCR_ERROR') {
-            workerRef.current?.removeEventListener('message', handler)
-            reject(new Error(msg.error))
-          }
-          // OCR_PROGRESS は意図的に無視（jobState に影響させない）
-        }
-
-        workerRef.current.addEventListener('message', handler)
-        workerRef.current.postMessage(
-          { type: 'OCR_PROCESS', id, imageData, startTime: Date.now() } satisfies WorkerInMessage,
-          [imageData.data.buffer]  // Transferable でゼロコピー転送
-        )
-      })
+      } catch (err) {
+        setJobState((prev) => ({ ...prev, status: 'error', errorMessage: (err as Error).message }))
+        throw err
+      }
     },
-    []
+    [callWorker, detectLayout, recognizeLayout, inferTables]
+  )
+
+  /** processRegion: 領域OCR用（デスクトップは認識 Worker プールを使用） */
+  const processRegion = useCallback(
+    async (imageData: ImageData): Promise<{ textBlocks: TextBlock[]; fullText: string }> => {
+      const id = `region-${Date.now()}`
+      if (poolRef.current) {
+        const layout = await detectLayout(imageData, id, true)
+        return recognizeLayout(layout)
+      }
+      const rgba = toRGBA(imageData)
+      return callWorker(
+        { type: 'OCR_PROCESS', id, imageData: rgba, startTime: Date.now() },
+        (msg) => (msg.type === 'OCR_COMPLETE' ? { textBlocks: msg.textBlocks, fullText: msg.txt } : undefined),
+        [rgba.data.buffer as ArrayBuffer]
+      )
+    },
+    [callWorker, detectLayout, recognizeLayout]
   )
 
   const resetState = useCallback(() => {
     setJobState(initialJobState)
   }, [])
 
-  return { isReady, jobState, processImage, processRegion, resetState }
+  return { isReady, backend, recWorkerCount, jobState, processImage, processRegion, resetState }
 }
