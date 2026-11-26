@@ -21,6 +21,24 @@ import { RegionOCRDialog } from './components/viewer/RegionOCRDialog'
 import { imageDataToDataUrl } from './utils/imageLoader'
 import './App.css'
 
+const SAMPLES = [
+  {
+    url: '/kumonoito.png',
+    fileName: 'kumonoito.png',
+    type: 'image/png',
+    title: { ja: '縦書きの本文（芥川龍之介「蜘蛛の糸」）', en: 'Vertical Japanese text (Akutagawa, "The Spider\'s Thread")' },
+  },
+  {
+    url: '/samples/digidepo_3048008_0025.jpg',
+    fileName: 'digidepo_3048008_0025.jpg',
+    type: 'image/jpeg',
+    title: {
+      ja: '表を含むページ（国立国会図書館デジタルコレクションより。NDLOCR-Lite 同梱サンプル）',
+      en: 'Page with a table (NDL Digital Collections; sample bundled with NDLOCR-Lite)',
+    },
+  },
+]
+
 function cropRegion(srcDataUrl: string, bbox: BoundingBox) {
   return new Promise<{ previewDataUrl: string; imageData: ImageData }>((resolve) => {
     const img = new Image()
@@ -115,10 +133,11 @@ export default function App() {
     return () => document.removeEventListener('paste', handleGlobalPaste)
   }, [sessionResults.length, isLoadingFiles, isProcessing, handleFilesSelected])
 
-  const handleSampleLoad = useCallback(async () => {
-    const res = await fetch('/kumonoito.png')
+  // サンプル画像（1: 縦書き本文、2: 表を含むページ。出典は SAMPLES の title を参照）
+  const handleSampleLoad = useCallback(async (url: string, fileName: string, type: string) => {
+    const res = await fetch(url)
     const blob = await res.blob()
-    const file = new File([blob], 'kumonoito.png', { type: 'image/png' })
+    const file = new File([blob], fileName, { type })
     await processFiles([file])
   }, [processFiles])
 
@@ -265,9 +284,17 @@ export default function App() {
               <button className="btn btn-secondary" onClick={handlePasteFromClipboard} disabled={isWorking}>
                 {lang === 'ja' ? 'クリップボードから貼り付け' : 'Paste from Clipboard'}
               </button>
-              <button className="btn btn-secondary" onClick={handleSampleLoad} disabled={isWorking}>
-                {lang === 'ja' ? 'サンプルを試す' : 'Try Sample'}
-              </button>
+              {SAMPLES.map((sample, i) => (
+                <button
+                  key={sample.url}
+                  className="btn btn-secondary"
+                  onClick={() => handleSampleLoad(sample.url, sample.fileName, sample.type)}
+                  disabled={isWorking}
+                  title={sample.title[lang]}
+                >
+                  {lang === 'ja' ? `サンプル${i + 1}` : `Sample ${i + 1}`}
+                </button>
+              ))}
             </div>
           </section>
         )}

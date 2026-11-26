@@ -148,7 +148,7 @@ npm run build
 - TableCenterNet: Anyi Xiao and Cihui Yang, arXiv:2504.17522
 - 文字セット（NDLmoji.yaml）: 国立国会図書館
 - 異体字対応表（character_inclusion_mapping.csv）: 国立国会図書館（[tugidigi-web](https://github.com/ndl-lab/tugidigi-web) jd_book.json）
-- テスト用画像（tests/fixtures/images、kumonoito.png を除く）: NDLOCR-Lite リポジトリ同梱のサンプル画像
+- サンプル2（public/samples/digidepo_3048008_0025.jpg）・テスト用画像（tests/fixtures/images、kumonoito.png を除く）: NDLOCR-Lite リポジトリ同梱のサンプル画像（国立国会図書館デジタルコレクション）
 
 ## 作成者
 
